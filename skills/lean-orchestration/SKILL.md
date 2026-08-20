@@ -70,6 +70,28 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 
 Every path ends at Deliver, including the write-back in Step 11.
 
+### Load the phase files for your route
+
+Steps 2 through 11 live in `references/`, next to this file, and load only when the route reaches them. Read a file **before** executing its steps, never after. Everything above this line is standing law: it applies to every route and is never reloaded.
+
+| Route | Read, in order |
+|---|---|
+| **answer** | `ground.md` → `deliver.md` |
+| **report** | `ground.md` → `find.md` → `verify.md` (Step 7) → `deliver.md` |
+| **fixes** | `ground.md` → `find.md` → `verify.md` (Step 7) → `implement.md` → `verify.md` (Step 10) → `deliver.md` |
+| **feature** | `ground.md` → `implement.md` → `verify.md` (Step 10) → `deliver.md` |
+| **refactor** | `ground.md` → `implement.md` → `verify.md` (Step 10, flipped to behavior preservation) → `deliver.md` |
+
+| File | Steps | Contents |
+|---|---|---|
+| `references/ground.md` | 2, 2.25, 2.5, 3 | Ground once, Recon, Clarify (the grill and its acceptance checklist), Navigate |
+| `references/find.md` | 4, 5-6 | Find, Dedup, Triage |
+| `references/verify.md` | 7, 10 | Verify findings (burden direction), Verify implementation (gates, checklist walk, strike rule) |
+| `references/implement.md` | 8-9 | Synthesize and implement |
+| `references/deliver.md` | 11 | Deliver, verification-level tags, write-back |
+
+Read each file once per request and hold it for that request. A new request restarts at Step 0 and reloads only what its own route names. **Never execute a phase from memory of a previous request**: that is the same failure as inheriting the restrictions without the routing, one file down. If you find yourself about to skip a read because you think you recall the rule, read it.
+
 ## Step 1.5 — Skill routing
 
 Installed and model-invocable. Invoke via the Skill tool; reimplementing them inline is strictly worse, because they are tuned and you will drift.
@@ -86,112 +108,6 @@ Installed and model-invocable. Invoke via the Skill tool; reimplementing them in
 | Step 10 | `code-review` | Before delivering on any fixes or feature route. |
 
 Some skills are user-launch-only (`/grill-with-docs`, `/implement`, `/to-spec`, `/to-tickets`, `/triage`). Name one in a line (`Suggest /to-tickets to split this.`), do not stall for it, do not hand-roll a substitute, and do not edit their frontmatter.
-
-## Step 2 — Ground once
-
-If the task references a spec, README, design image, stated scope, or a won't-fix registry: load and distill it **once**, then inject that summary plus anchors into every worker prompt. Never let N workers re-read the same source or vision-parse the same image N times.
-
-Ground as its own dispatch only when several workers consume it and the source is big; otherwise fold it into the one worker's prompt. For a fact outside the repo, invoke `research` rather than guessing or hand-fetching, and keep working while it reads.
-
-## Step 2.25 — Recon
-
-**Fires on ambiguity, whenever Step 2.5 will grill.** Dispatch one navigator with a precise question before asking the user anything: *what already exists here that the request will collide with?* Name the specific thing being changed rather than surveying — a navigator answers one question and files the rest under UNKNOWNS.
-
-Without this the grill asks what the repo already answers, which is what trains people to skip grills. Skip only on genuinely greenfield work. Counts against the Step 3 budget.
-
-## Step 2.5 — Clarify
-
-**Fires on ambiguity, not on deliverable type.** A vague report request needs the grill exactly as much as a vague feature does.
-
-Gate: would a wrong guess here cause rework or a throwaway? If yes it is load-bearing and must be resolved. If no, state it as an assumption and move on. **No question cap** — the stop condition is an empty load-bearing set.
-
-A vague prompt is not a failure of the request; the user is carrying context they did not know needed saying. So the default response to vagueness is to grill, not to guess and not to shrink the scope.
-
-1. **Assume and proceed** for anything minor, on a short visible assumptions list.
-2. **Batched questions** for an otherwise crisp task with one to three load-bearing unknowns: one numbered list, each with your recommended default.
-3. **`grilling`** for anything broader. Launch it yourself.
-4. **`grilling` + `domain-modeling`** for a real feature or consequential design. Its ADRs and glossary *are* the assumptions ledger.
-
-Follow `grilling`'s protocol: one question at a time, each with your recommended answer, waiting for the reply. Look up any *fact* the codebase can answer; the *decisions* are the user's. The grill runs in the main agent — a subagent has no channel to the user and would stall or invent answers. Running non-interactively you cannot grill: record the load-bearing unknowns as explicit assumptions and say so in the deliverable.
-
-**The grill exits with an acceptance checklist:** numbered, observable statements that define done, each confirmable by looking at code, a test, or a run. Not "handles errors gracefully" but "a malformed payload returns 400 naming the bad field, and writes no partial row." That checklist, not the original prompt, is what Step 10 walks. It is the only mechanism here that structurally prevents the build-wrong then re-explain then rebuild loop, which costs more than every dispatch on this page combined.
-
-If a Step 10 strike appears later, check the assumptions list first. A false assumption turns a mystery bug into a one-line correction.
-
-## Step 3 — Navigate
-
-Discriminator: **am I going to edit these files, or just understand them?** Read-to-edit stays inline, because Edit needs exact bytes. Read-to-understand delegates.
-
-Before dispatching, check the answer is not already in the grounding, the recon return, an earlier worker's return, or session memory. Dispatch a **precise question**, never "explore module X".
-
-- Budget: **~3-4 navigator dispatches per route**, recon included. Exceed only with a stated reason.
-- Fire them in one message so they run concurrently, then keep working inline.
-- `navigator` for a question needing synthesis; `Explore` for a broad locate-only sweep.
-- **A simple search is not a dispatch.** Mechanical lookups go to the sandbox or inline.
-- On the **answer** route there is no verify step, so the navigator's UNKNOWNS section is the backstop: a second dispatch fires when UNKNOWNS covers something load-bearing, and on nothing weaker.
-
-## Step 4 — Find (review/audit only)
-
-Partition the surface, assign each finder a slice, broadcast the shared grounding to all of them. Never hand the whole surface to every finder.
-
-- Budget: **~3-5 finder dispatches per review.** Prefer fewer, larger slices.
-- **Pick the tier per slice, in one pass.** `finder-lite` for breadth, where reading carefully is the work. Full `finder` where the defect class needs sustained reasoning: concurrency, lifecycle, caching, security, spec drift across files. A cheap sweep followed by an expensive one doubles the dispatch count the budget exists to hold down.
-- **A finder's job is coverage, not filtering.** Never put a severity floor in a dispatch ("only high-severity", "be conservative", "don't nitpick"): it is obeyed literally, the finding is judged below the bar and dropped silently, and your recall falls while nothing looks wrong. Findings return with severity and confidence; Steps 5-6 do the cutting.
-- **code-defect** covers every slice. **spec-conformance** runs where the grounding maps a spec claim onto the slice. **design-critique** runs once, over the seams — module boundaries, signatures, shared types. Seams span slices, so the seam pass is exempt from the partition and counts as one finder against the budget. When you send all lenses in one dispatch, name them explicitly and say which slice owns the seams.
-- If the budget drops a lens or a slice, **say so in the deliverable.** Silent truncation reads as full coverage.
-
-## Steps 5-6 — Dedup, then Triage
-
-Collapse findings to root cause **across lenses**. One root in three files is one finding, not three verifications.
-
-- **fixes** → triage is a **filter**: fix-now only what shows a wrong result or can wedge or lose data. The rest become notes.
-- **report** → triage is a **rank + label** (`fix-now` / `note` / `won't-fix`). Keep everything.
-- Both: filter against the won't-fix registry so settled decisions are not reparaded.
-
-Triage is the master cost lever. The cheapest verifier is the finding you decided not to chase.
-
-## Step 7 — Verify findings
-
-**Default: no dispatch.** A skeptic buys independence — a reader who did not author the finding and does not share the context that produced it. Spend one only where that is what is in doubt: **contested or high-stakes** survivors. A blatant defect with an obvious failing input rides on the fix plus gates.
-
-State the lens and the burden direction. **Burden direction is yours to decide, not the agent's:**
-
-- Fix is risky or expensive, impact-if-unfixed tolerable → **default-reject.** Prove it real before touching code.
-- Impact-if-real is catastrophic (data loss, security, wedge) → **default-suspect.** Prove it safe before dismissing.
-
-The burden falls on whichever side is cheaper to be wrong about. Findings already triaged critical go straight to `skeptic-max`; never pay a plain skeptic first for a finding whose stakes you already know.
-
-- Depth scales with the consumer: a report a human reviews gets one skeptic, since the human is the backstop. An auto-applied edit gets a panel sized to blast radius.
-- **Batch small survivors**, soft cap ~5 per skeptic, each with a short stable ID so the returns can be joined back.
-- Run independent verifications in parallel. Serialise only to early-exit or when findings interact.
-- `INCONCLUSIVE` means the skeptic could not evaluate, not that the finding is dead. Re-dispatch with what it lacked, or carry the finding forward unverified and tag it as such.
-
-## Steps 8-9 — Synthesize and implement
-
-Think and merge inline using anchors; pull exact bytes on demand. On merge, run a **seam-check**: reconcile shared types and call signatures across worker outputs rather than stapling summaries together. For state, lifecycle, caching, or failure designs, trace one value end-to-end before committing to the shape.
-
-- Reshaping a module boundary, interface, or seam → invoke `codebase-design`.
-- A state model uncertain enough that arguing costs more than building → invoke `prototype`, then throw it away.
-
-Implement inline by default; invoke `tdd` at the seams agreed in the grill. Delegate only parallel-independent slices in separate worktrees — that buys isolation, not context savings. **After any implementation subagent, read `git diff` inline** and check the worker did not weaken a spec or a test to make its claim pass.
-
-## Step 10 — Verify implementation
-
-- **Never add a verification step for its own sake**, and never dispatch one to feel surer. A step whose only content is "check again" produces over-verification, not correctness. Each item below earns its place by catching something self-checking structurally cannot.
-- **Gates first**, in the sandbox where available. Spend a skeptic only on what gates cannot see. A gate added in this task must be seen red once before its green counts.
-- **Walk the acceptance checklist** item by item, reporting each as met / not met / not checked. Where there is no checklist because the request was unambiguous, say that plainly rather than inventing one. `code-review` checks the work against repo standards; the checklist checks it against what the user actually said.
-- **Refactor routes flip the question to behavior preservation**: gates green before and after, and the skeptic hunts for behavior *changes*. Verdicts invert — PROVEN means a proven change, so preservation is disproven; SURVIVES means old and new held equivalent, which is the good outcome. Say which sense you mean when you tag it.
-- Verifier scope is **correctness and spec, not taste.** Nits are logged, not looped.
-- **Strike rule**, keyed on recurrence rather than count: three different unrelated fixed issues is review working. **Same class three times, or fixes that breed new issues, means stop patching and interrogate the plan.** You hold this state.
-- On any fixes or feature route, invoke `code-review` before delivering.
-
-## Step 11 — Deliver
-
-Artifacts go to files, not the chat. Report the path plus a compact summary. **Calibrate length**: cover the substance the task needs and stop — no filler sections, no summary of the summary, no boilerplate around a short answer.
-
-Tag each finding with its verification level so the reader knows where to spend attention: `gate-caught`, `proof-confirmed` (a skeptic returned PROVEN, or you checked it yourself), `refuted-survived` (SURVIVES), `finder-claim` (reported, never independently verified), `refuted`. Most report-mode findings are `finder-claim`; tagging one a level up overstates confidence. `refuted` stays in the report, marked, never silently dropped.
-
-**Write back what would otherwise be relearned.** If an assumption proved false, the strike rule fired, or the route needed correcting, save one memory recording the fact and how to apply it. Every step above avoids paying twice within a session; this is the same principle across sessions, and the cheapest of them.
 
 ## Loop exits — name the exit before entering any loop
 
