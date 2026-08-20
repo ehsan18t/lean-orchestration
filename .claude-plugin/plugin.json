@@ -1,0 +1,19 @@
+{
+  "name": "lean-orchestration",
+  "version": "0.1.0",
+  "description": "Route every non-trivial task for the highest-quality output per token: inline vs. subagent per phase, gates before LLMs, adversarial verification only where it pays.",
+  "author": {
+    "name": "Ehsan Khan",
+    "url": "https://github.com/ehsan18t"
+  },
+  "homepage": "https://github.com/ehsan18t/lean-orchestration",
+  "repository": "https://github.com/ehsan18t/lean-orchestration",
+  "license": "MIT",
+  "keywords": [
+    "orchestration",
+    "subagents",
+    "code-review",
+    "token-efficiency",
+    "skills"
+  ]
+}

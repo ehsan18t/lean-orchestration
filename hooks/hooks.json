@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/lean-orchestration-nudge.mjs"],
+            "timeout": 5,
+            "statusMessage": "Applying lean-orchestration Step 0..."
+          }
+        ]
+      }
+    ]
+  }
+}

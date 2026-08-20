@@ -1,0 +1,17 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
+  "name": "lean-orchestration",
+  "description": "Lean orchestration for Claude Code: cost-aware routing, five read-only role agents, and an adversarial verification ladder.",
+  "owner": {
+    "name": "Ehsan Khan",
+    "url": "https://github.com/ehsan18t"
+  },
+  "plugins": [
+    {
+      "name": "lean-orchestration",
+      "description": "Route non-trivial tasks for maximum quality per token, with gates first and skeptics only where they pay.",
+      "source": "./",
+      "category": "workflow"
+    }
+  ]
+}
