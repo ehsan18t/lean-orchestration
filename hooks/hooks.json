@@ -1,14 +1,16 @@
 {
+  "description": "Loads the lean-orchestration skill once at session start so routing is in force from the first message.",
   "hooks": {
-    "UserPromptSubmit": [
+    "SessionStart": [
       {
+        "matcher": "startup|clear",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/lean-orchestration-nudge.mjs"],
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/lean-autostart.mjs"],
             "timeout": 5,
-            "statusMessage": "Applying lean-orchestration Step 0..."
+            "statusMessage": "Arming lean-orchestration..."
           }
         ]
       }

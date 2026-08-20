@@ -13,7 +13,7 @@ Quality comes from adversarial *framing*, which is free text, and from *fresh co
 | `finder` / `finder-lite` agent | Read-only. Reviews one slice through one named lens (code-defect, spec-conformance, design-critique). |
 | `skeptic` / `skeptic-max` agent | Adversarial. Tries to refute a finding it did not author, at the burden direction you state. |
 | `/lean` command | Enter lean mode explicitly for the current task. |
-| Step 0 hook | Enforces the anti-trigger on every prompt, on by default. |
+| Autostart hook | Loads the skill once at session start, so routing is in force from your first message. |
 
 ## Install
 
@@ -36,13 +36,25 @@ Rungs are entry depths, not a sequence. Enter where the stakes land.
 
 Never pay an LLM to find what a gate finds for free, or to repeat a check you already made. Rungs 2 and up buy exactly one thing the main loop cannot: a reader who did not author the claim. Dispatching to "double-check" is not that, and produces over-verification instead of correctness.
 
-## The Step 0 hook
+## The autostart hook
 
-The skill's own description excludes small work, so left to model judgment it fires inconsistently. The hook closes that gap: it prepends roughly 55 tokens to each prompt telling the model to run the anti-trigger and emit a Route line before any fan-out.
+The skill's description excludes small work, so left to model judgment it fires inconsistently. Running `/lean` by hand at the top of a session fixes that, and it stays fixed for the rest of the session.
 
-It does not inline the full procedure. Loading all of it on a trivial turn gives you the brakes with no steering, which the skill warns about directly. The nudge points at the skill, and the model loads it only when Step 0 says the task warrants it.
+The hook does that for you. On session start it injects one instruction that loads the skill, so routing is in force before your first message. There is no per-message cost: the skill body lands once and then sits in the cached prefix.
 
-To disable without uninstalling, remove the `UserPromptSubmit` block from `hooks/hooks.json`.
+Earlier versions nudged on every prompt instead. That cost tokens on every message and only ever pointed at the skill, so any real task paid for the nudge *and* the skill. Loading once is both cheaper and stronger.
+
+It fires on `startup` and `clear`. It does not fire on `resume`, because a resumed transcript already carries the skill. After a heavy compaction the skill body can be summarized away; if you notice routing has stopped, run the command by hand.
+
+Requires `node` on your PATH. Hook failures are silent, so a missing Node costs you the autostart and nothing else. You can still invoke `/lean-orchestration:lean` yourself.
+
+### Turning it off
+
+The plugin asks when you enable it. Answer no and autostart stays off; the rest of the plugin works normally and you load the skill yourself with `/lean-orchestration:lean`.
+
+To change your mind later, edit the `autostart` value the plugin saved in your `settings.json`. For a one-off session, or if you installed the skill without the plugin, set `LEAN_ORCHESTRATION_AUTOSTART=off` in the environment; it overrides the saved setting.
+
+Do not edit `hooks/hooks.json` to disable it: plugin files are replaced on update.
 
 ## Effort
 
