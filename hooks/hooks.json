@@ -1,9 +1,9 @@
 {
-  "description": "Loads the lean-orchestration skill once at session start so routing is in force from the first message.",
+  "description": "Injects the lean-orchestration skill body at session start, and again after a compaction, so routing is in force from the first message.",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear",
+        "matcher": "startup|clear|compact",
         "hooks": [
           {
             "type": "command",
