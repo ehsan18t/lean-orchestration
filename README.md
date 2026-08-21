@@ -2,7 +2,7 @@
 
 Route every non-trivial Claude Code task for the highest-quality output per token.
 
-Quality comes from adversarial *framing*, which is free text, and from *fresh context*, which is not. Every subagent dispatch re-pays its overhead and its read. This plugin encodes one rule: maximum framing, fewest fresh contexts.
+Quality comes from adversarial *framing*, which is free text, and from *fresh context*, which is not. Two things cost money: a dispatch, which buys a worker its own context and its own read, and a byte admitted to the main context, which is then re-billed on every turn that follows. The second is the one most cost advice leaves unpriced. This plugin encodes one rule: maximum framing, fewest fresh contexts, fewest bytes resident in the main one.
 
 ## What it installs
 
@@ -43,6 +43,10 @@ The skill's description excludes small work, so left to model judgment it fires 
 The hook does that for you. On session start it injects one instruction that loads the skill, so routing is in force before your first message. There is no per-message cost: the skill body lands once and then sits in the cached prefix.
 
 Earlier versions nudged on every prompt instead. That cost tokens on every message and only ever pointed at the skill, so any real task paid for the nudge *and* the skill. Loading once is both cheaper and stronger.
+
+Measured across 72 local sessions: with the hook, the skill loaded in 8 of 9 sessions (89%); without it, in 6 of 63 (10%). The skill description alone does not reliably fire, which is the whole reason this hook exists.
+
+A cheaper variant, injecting only the anti-trigger and letting the model decide whether to load, was tried and reverted. It saves roughly 3 to 4 percent of session spend and hands that 89 percent back to model judgment, with no signal when routing quietly stops firing. Against sessions that routinely run 200k to 500k prefixes, the skill body is not the expensive part. If that cost ever needs cutting, split the core so autostart loads only the route table and defers the cost model, rather than deferring the load itself.
 
 It fires on `startup` and `clear`. It does not fire on `resume`, because a resumed transcript already carries the skill. After a heavy compaction the skill body can be summarized away; if you notice routing has stopped, run the command by hand.
 

@@ -7,6 +7,18 @@
 // task, so the nudge was pure addition. Loading once puts the actual rules in
 // context and leaves them in the cached prefix for the rest of the session.
 //
+// Measured over 72 local sessions (2026-08-21): with this hook injected the skill
+// loaded in 8 of 9 sessions (89%); without it, in 6 of 63 (10%). Model judgment on
+// the frontmatter alone is not a substitute, which is what this hook exists to fix.
+//
+// A cheaper variant was tried and reverted: injecting only the Step 0 anti-trigger
+// (~170 tokens) and letting the model decide whether to load. That saves roughly
+// 3-4% of session spend, but it hands the 89% back to model judgment with no way to
+// tell when routing silently stopped firing. The load is ~4.9 KB against sessions
+// that routinely run 200k-500k prefixes; buying certainty at that price is correct.
+// If the cost ever needs cutting, split the core so autostart loads only the route
+// table and defers the cost model, rather than deferring the load itself.
+//
 // initialUserMessage is used rather than additionalContext because it enters the
 // turn as a real request, which is what makes the skill load. The text is prose
 // rather than a slash command on purpose: the command resolves as `/lean` from a

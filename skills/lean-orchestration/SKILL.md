@@ -5,7 +5,7 @@ description: Use when starting any non-trivial task (a feature, bug hunt, review
 
 # Lean Orchestration
 
-**Goal: the highest-quality output for the least token spend.** Quality comes from adversarial *framing*, which is free text, plus *fresh context*, which is not: every dispatch re-pays its overhead and its read. Maximum framing, fewest fresh contexts.
+**Goal: the highest-quality output for the least token spend.** Quality comes from adversarial *framing*, which is free text, plus *fresh context*, which is not. Two things cost money: a **dispatch**, which buys a worker its own context and its own read, and a byte admitted to **your own** context, which is then re-billed on every turn that follows. The second is the one this page used to leave unpriced. Maximum framing; fewest fresh contexts; fewest bytes resident in this one.
 
 The role agents (`navigator`, `finder`, `finder-lite`, `skeptic`, `skeptic-max`) carry their own return contracts and evidence bars. Never restate those in a dispatch prompt; state only the task, the slice, the grounding, and the burden direction.
 
@@ -44,6 +44,16 @@ A `-lite` pin is a floor, not a delta, so when the session already sits at or be
 **The failure mode here is over-dispatching.** Budgets are a ceiling you enforce, not a target you fill. Never dispatch work you could finish in a handful of tool calls: a few reads, a simple search, a small check. Once you delegate, commit — do not re-derive a worker's findings after it reports. The one exception is reading `git diff` after a worker with write access, which checks something its report structurally cannot.
 
 **Zero-tax execution.** Anything mechanical and multi-command goes to a sandboxed exec tool where one is available (`ctx_batch_execute`, `ctx_execute`): no agent prompt, no inherited CLAUDE.md, raw bytes never reach main context. This covers gates, multi-file lookups, and log or diff scans. Where no such tool is loaded, run it inline and keep only what you need.
+
+**4. Main context is rented, not bought.** Every turn re-reads the entire prefix, so a byte you admit is not paid once, it is paid again on every turn that follows. On a long session that recurring rent, not any fan-out, is the largest line on the bill.
+
+This item is about the **size** of what you admit. It does not tell you whether to dispatch: that call belongs to the discriminator in `ground.md`, and nothing here overrides it.
+
+- **Keep what lands here small — including what comes back.** A worker's return rents exactly like a file you read. One 20k return admitted at turn 8 of a 211-turn session was re-billed 200-odd times and cost more than the dispatch that produced it. Ask a worker for a distilled answer, never a dump. The same discipline applies to what you admit directly: read line ranges rather than whole files, and never re-read a file you already read. **One exception: bytes you are about to edit stay inline and verbatim.** `Edit` matches against exact text, so a summary of a file you then edit is a correctness bug, not a saving. Cost never buys a wrong edit.
+- **Tool *inputs* are prefix too.** A `Write` carrying a whole file, or an `Edit` carrying long strings, sits in the prefix exactly like output does — measured, they run about 40% of durable context. Prefer a narrow edit over rewriting a file to change a line.
+- **When the session has run long, say so out loud.** You cannot clear your own context; only the user can. So when a lot of work has accumulated and the task is still going, tell them plainly that checkpointing to a file and starting fresh will cost less than continuing, and offer to write the checkpoint. Do not derive a threshold from the window size: on a 1M-token model "half the window" never fires at all. A checkpoint write is itself a large payload, so it only pays if the session actually restarts. Err toward saying it early — where this mattered, the crossing came in the first tens of turns with nearly all of the spend still ahead.
+
+You cannot read your own prefix size; the harness does not report it, and most of it is never visible to you. So treat the trigger above as a rough sense of accumulated work, not a number you check.
 
 ## Step 1 — Route
 
