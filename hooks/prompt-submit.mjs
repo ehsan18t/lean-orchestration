@@ -3,7 +3,7 @@
 // The skill body sits in the prefix from session start, but a standing instruction
 // decays over a long session: the structure fires once and the restrictions persist.
 // A per-prompt line is the direct countermeasure. It points at the body already in
-// context and loads nothing, so its whole cost is its own length, roughly 30 tokens,
+// context and loads nothing, so its whole cost is its own length, roughly 60 tokens,
 // re-billed as prefix like everything else. The earlier per-prompt nudge that was
 // removed cost more because it pointed at a skill that then had to be loaded.
 //
