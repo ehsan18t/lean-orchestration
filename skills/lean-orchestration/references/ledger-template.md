@@ -1,0 +1,77 @@
+# Ledger — the durable record of one task
+
+A ledger is one file per task in the ledger directory the session-start hook names (`Ledger directory:` line). It is the only task state that outlives a request: the route, budgets and restrictions belong to the request; the ledger belongs to the task and persists across requests, compactions and sessions. Follow-ups (`amend` route) read it instead of re-grounding, and a fresh session finds it through the index the hook injects.
+
+**Filename:** `YYYY-MM-DD-<slug>.md`, slug from the task title, lowercase, hyphenated. Never rename a ledger; the index and the log reference it by path.
+
+**Size discipline.** Keep it under ~80 lines. It is read on every follow-up, so every line rents. Record decisions and observable facts, not narrative. Update with narrow `Edit`s, never by rewriting the file.
+
+## Template
+
+```markdown
+---
+task: <slug>
+title: <one line, the task in the user's terms>
+status: open | parked | done | abandoned
+route: feature | fixes | report | answer | refactor | amend
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+
+## Request
+
+<One paragraph: what was asked, restated in the user's terms. Not the prompt verbatim.>
+
+## Acceptance checklist
+
+1. [ ] <Observable statement, confirmable by looking at code, a test, or a run.>
+2. [ ] ...
+
+## Decisions
+
+- D1 (asked | assumed): <decision, and the alternative it rejected in a few words>
+
+## Assumptions
+
+- A1: <assumption> — unverified | confirmed | false, corrected <date>
+
+## Won't fix
+
+- <a finding or request left alone for this task, one line, with why; anything that must stay settled beyond this task is copied to `wont-fix.md` at Deliver>
+
+## Files
+
+- <path> — <what changed, one clause>
+
+## Log
+
+- YYYY-MM-DD <event>: <one line>
+```
+
+**Checklist marks:** `[ ]` not checked, `[x]` met, `[-]` not met (say why in the log), `[~]` superseded by an amend (point at the log entry).
+
+## Write points
+
+| When | Who writes | What |
+|---|---|---|
+| Grill start (Step 2.5) | the main agent | Create the file with the request and the open load-bearing set; append each decision, assumption and term as it is settled. |
+| Grill exit (Step 2.5) | the main agent | Add the checklist and the seams the tests will cross. This is the grill's deliverable; the grill is not over until the checklist is in the file. |
+| Grill that could not run (non-interactive, or "just build it") | the main agent | Same file, created at grill start as usual: every load-bearing unknown decided and recorded as an assumption marked unverified, and the checklist written from those decisions, marked unconfirmed. |
+| Fixes / refactor route that reaches Step 2.75 with no ledger (Clarify needed no grill) | the main agent, at Step 2.75 | Create the file with the request restated as observable checklist items (marked unconfirmed), the assumptions made, and the seams the tests will cross. Steps 8 to 10 then have a ledger to write to. |
+| Strike rule fires, assumption proves false, route corrected (Step 10) | the main agent | Log line, and the assumption or checklist item it changes. |
+| Deliver (Step 11) | the main agent | Checklist marks, files touched, status, `updated`, log line. |
+| Amend route | the main agent | The contradicted item, a log line naming the correction, status back to `open` if it was `done`. |
+
+`answer` and `report` routes create no ledger; if the grill ran on them, the ledger it created is marked done at Deliver. A report's triage goes to the won't-fix registry.
+
+## Project-wide files
+
+Three files in the same directory belong to the project, not to a task, and are never listed in the index:
+
+- `wont-fix.md`: one line per finding or request deliberately left alone: `- <what> — <why> (<date>)`. Triage (Steps 5-6) filters against it so settled decisions are not reparaded; a refactor reads it at Ground.
+- `decisions.md`: the hard-to-reverse, surprising, traded-off decisions (the grill's triple test), one entry each: date, decision, alternatives rejected, why, the ledger it came from. Read at Ground for the area a task touches and by diagnose; a later unrelated task never opens the ledger that made the decision, so this is where it survives. Used only when the repo has no `docs/adr/` of its own.
+- `glossary.md`: settled project terms, used only when the repo has no `CONTEXT.md` of its own (see `grill.md`).
+
+## Checkpoint
+
+When a session has run long, the checkpoint is the ledger. Bring it current (checklist marks, files, log), then tell the user in one line that the ledger is current and a fresh session will pick it up from the index. Nothing else needs writing. On an answer or report route that has no ledger, the checkpoint is the deliverable file written so far (the report's findings), which is one reason artifacts go to files; say which file it is.
