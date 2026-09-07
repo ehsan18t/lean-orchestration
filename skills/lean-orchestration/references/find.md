@@ -18,7 +18,7 @@ Collapse findings to root cause **across lenses**. One root in three files is on
 
 - **fixes** → triage is a **filter**: fix-now only what shows a wrong result or can wedge or lose data. The rest become notes.
 - **report** → triage is a **rank + label** (`fix-now` / `note` / `won't-fix`). Keep everything.
-- Both: filter against the won't-fix registry so settled decisions are not reparaded.
+- Both: filter against the won't-fix registry (`wont-fix.md` in the ledger directory the hook named, plus any registry the grounding supplied) so settled decisions are not reparaded. Read it here, once; it is never in the index.
 
 Triage is the master cost lever. The cheapest verifier is the finding you decided not to chase.
 
