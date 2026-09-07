@@ -20,6 +20,13 @@
 // additionalContext is used rather than initialUserMessage: the body needs to be
 // present, not acted on, so it must not consume a user turn.
 //
+// The harness truncates a hook's additionalContext above roughly 10 KB to a 2 KB
+// preview plus a file on disk (measured 2026-09-08: 9 KB arrives whole, 11 KB does
+// not), and the limit is per hook. So this script is registered several times in
+// hooks.json with a part number, builds the whole payload each time, splits it at
+// section boundaries into parts under PART_LIMIT bytes, and emits only its part.
+// Parts beyond the last emit nothing, which leaves headroom for the body to grow.
+//
 // Never blocks a session: any failure exits 0, and an unreadable SKILL.md degrades to
 // an instruction to load the skill rather than to nothing.
 
@@ -28,6 +35,63 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { autostartEnabled, emit, ledgerBlock, readStdinJson, resolveLedgerDir } from "./lib.mjs";
 
+const PART_LIMIT = 8500;
+const PART = Math.max(1, Number(process.argv[2] || "1"));
+
+// Splits at markdown headings (never inside a fenced block), packing sections greedily
+// into parts under the limit; a single oversize section is split at blank lines.
+function splitIntoParts(text, limit) {
+  const sections = [];
+  let current = "";
+  let inFence = false;
+  for (const line of text.split("\n")) {
+    if (/^```/.test(line)) inFence = !inFence;
+    if (!inFence && /^#{1,3} /.test(line) && current) {
+      sections.push(current);
+      current = "";
+    }
+    current += (current ? "\n" : "") + line;
+  }
+  if (current) sections.push(current);
+  const pieces = [];
+  for (const sec of sections) {
+    if (Buffer.byteLength(sec) <= limit) {
+      pieces.push(sec);
+      continue;
+    }
+    let chunk = "";
+    for (const para of sec.split("\n\n")) {
+      if (chunk && Buffer.byteLength(chunk) + Buffer.byteLength(para) + 2 > limit) {
+        pieces.push(chunk);
+        chunk = "";
+      }
+      chunk += (chunk ? "\n\n" : "") + para;
+    }
+    if (chunk) pieces.push(chunk);
+  }
+  const parts = [];
+  let part = "";
+  for (const piece of pieces) {
+    if (part && Buffer.byteLength(part) + Buffer.byteLength(piece) + 2 > limit) {
+      parts.push(part);
+      part = "";
+    }
+    part += (part ? "\n\n" : "") + piece;
+  }
+  if (part) parts.push(part);
+  return parts;
+}
+
+function emitPart(payload) {
+  const parts = splitIntoParts(payload, PART_LIMIT);
+  if (PART > parts.length) process.exit(0);
+  const k = parts.length;
+  const head = k > 1 ? `[lean-orchestration injection, part ${PART} of ${k}; the parts together are one document]\n` : "";
+  const open = PART === 1 ? "<EXTREMELY_IMPORTANT>\n" : "";
+  const close = PART === k ? "\n</EXTREMELY_IMPORTANT>" : "";
+  emit({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: `${open}${head}${parts[PART - 1]}${close}` } });
+}
+
 try {
   if (!autostartEnabled()) process.exit(0);
 
@@ -35,6 +99,13 @@ try {
   // works when the skill is installed on its own, outside the plugin.
   const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "skills", "lean-orchestration");
   const SKILL_PATH = join(SKILL_DIR, "SKILL.md");
+  // The output rules are tiny and apply to every message, so they ride along on every source, resume included.
+  let output = "";
+  try {
+    output = readFileSync(join(SKILL_DIR, "OUTPUT.md"), "utf8").trim();
+  } catch {
+    output = "";
+  }
 
   const input = readStdinJson();
   const source = String(input.source || "startup").toLowerCase();
@@ -45,14 +116,9 @@ try {
       "lean-orchestration is in force for this session; its body was injected earlier in this",
       "transcript. If you cannot see that body, load the `lean-orchestration` skill with the Skill",
       "tool now. Run its Step 0 on every request. The ledger index below is current; the one in",
-      "the earlier injection is not.",
+      "the earlier injection is not. The output rules below apply to every message.",
     ].join(" ");
-    emit({
-      hookSpecificOutput: {
-        hookEventName: "SessionStart",
-        additionalContext: `<EXTREMELY_IMPORTANT>\n${note}\n\n${ledgers}\n</EXTREMELY_IMPORTANT>`,
-      },
-    });
+    emitPart(`${note}\n\n${ledgers}\n\n${output}`);
     process.exit(0);
   }
 
@@ -66,7 +132,8 @@ try {
     "loaded, so you do not need to load the lean-orchestration skill yourself. Other skills are",
     "unaffected: invoke them with the Skill tool as normal.",
     "This is in force for the entire session. Run its Step 0 anti-trigger on every request, and",
-    "emit the one-line Route before dispatching any subagent or writing a plan.",
+    "emit the one-line Route before dispatching any subagent or writing a plan. The output rules",
+    "after the body apply to every message the user reads.",
   ].join(" ");
 
   const BASE_DIR_LINE =
@@ -92,16 +159,11 @@ try {
   }
 
   if (!skill) {
-    emit({ hookSpecificOutput: { hookEventName: "SessionStart", initialUserMessage: FALLBACK } });
+    if (PART === 1) emit({ hookSpecificOutput: { hookEventName: "SessionStart", initialUserMessage: FALLBACK } });
     process.exit(0);
   }
 
-  emit({
-    hookSpecificOutput: {
-      hookEventName: "SessionStart",
-      additionalContext: `<EXTREMELY_IMPORTANT>\n${FRAMING}\n\n${BASE_DIR_LINE}\n\n${ledgers}\n\n${skill}\n</EXTREMELY_IMPORTANT>`,
-    },
-  });
+  emitPart(`${FRAMING}\n\n${BASE_DIR_LINE}\n\n${ledgers}\n\n${skill}\n\n${output}`);
 } catch {
   process.exit(0);
 }

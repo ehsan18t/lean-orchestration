@@ -18,7 +18,8 @@ It is model-agnostic. Nothing in it names a model; roles inherit the session's e
 | `skeptic` / `skeptic-max` agent | Adversarial. Tries to refute a finding it did not author, at the burden direction you state. |
 | `/lean` command | Enter lean mode explicitly for the current task. |
 | Hooks | Inject the skill at session start, re-inject the ledger index on resume, re-arm Step 0 with one short line on every prompt, and remove permission prompts for the skill's own files and the ledger directory. |
-| `scripts/route-rate.mjs` | Measures, from your own transcripts, how often the skill actually fires. |
+| Output rules | Six rules for every message you read: answer first, the important with its reasoning, the rest compressed, tables and lists over prose, real names, stop when the content stops. Injected with the skill and re-armed on every prompt. |
+| `scripts/route-rate.mjs`, `scripts/output-length.mjs` | Measure, from your own transcripts, how often the skill fires and how long its messages are. |
 
 ## Install
 
@@ -85,7 +86,7 @@ The implementation review is where quality is guaranteed by process rather than 
 
 The skill's description excludes small work, so left to model judgment it fires inconsistently. Measured over 72 local sessions in August 2026, a session-start hook that injected the skill loaded it in 8 of 9 sessions, against 6 of 63 with no hook. Injecting the body itself, rather than an instruction to load it, removed the one step that could still be skipped.
 
-Three hooks now do the work, one per event. On `startup`, `clear` and `compact`, the session-start hook injects the skill body, the ledger directory and the ledger index, so routing is in force before your first message and survives a compaction. On `resume` it injects only a fresh ledger index and a one-line note, because the transcript already carries the body. On every prompt, a second hook adds one line of about sixty tokens that re-arms Step 0 and names the amend route; the body sits in the prefix from the start, but a standing instruction decays over a long session and a per-prompt line is the direct countermeasure. It loads nothing, so its whole cost is its own length.
+Three hooks now do the work, one per event. On `startup`, `clear` and `compact`, the session-start hook injects the skill body, the ledger directory, the ledger index and the output rules, so routing is in force before your first message and survives a compaction. The harness truncates any single hook output above roughly 10 KB to a 2 KB preview plus a file on disk, and the limit is per hook (measured: 9 KB arrives whole, 11 KB does not; three 9 KB hooks all arrive). Earlier versions injected the 13 KB body in one piece and only its first 2 KB ever reached the model in full. The hook is therefore registered four times and emits the payload in parts under 8.5 KB, split at section boundaries; unused parts emit nothing, which leaves room for the body to grow. On `resume` it injects only a fresh ledger index and a one-line note, because the transcript already carries the body. On every prompt, a second hook adds one line of about sixty tokens that re-arms Step 0 and names the amend route; the body sits in the prefix from the start, but a standing instruction decays over a long session and a per-prompt line is the direct countermeasure. It loads nothing, so its whole cost is its own length.
 
 A third hook removes permission prompts for exactly two places: reads of the skill's own phase files, and reads or edits inside the ledger directory. Both sit outside your working directory, so without it every phase-file read and every ledger update would ask, and a non-interactive session would refuse them and silently fall back to unrecorded inline work. Measured in a print-mode session before this hook existed, that is exactly what happened: the model routed to amend, was refused the ledger and the amend phase file, and made the edit with no record. With the hook, the same session read both, recorded the false assumption before touching code, fixed it, and logged the correction. Nothing else is auto-allowed.
 
@@ -95,7 +96,10 @@ A third hook removes permission prompts for exactly two places: reads of the ski
 
 ```
 node scripts/route-rate.mjs --since 2026-09-01
+node scripts/output-length.mjs --since 2026-09-01
 ```
+
+The second reports median and 90th-percentile words per message, code and tables excluded, split by whether the output rules were injected. Baseline over 55 sessions before the rules: median 19 words, 90th percentile 228.
 
 Scans your own transcripts and reports, per session, the number of real prompts, the number of Route lines, whether the per-prompt reminder was present, and the old skill-load count, then a routed rate for sessions with and without the reminder. Before the per-prompt hook existed, 41 of 54 sessions with at least two prompts (76 percent, 2026-08-18 onward) carried a Route line. Run it after a week on the new hooks to see the difference.
 

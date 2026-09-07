@@ -1,5 +1,5 @@
 {
-  "description": "Injects the lean-orchestration skill body at session start (and again after a compaction), re-injects the ledger index on resume, re-arms Step 0 with one short line on every prompt, and removes permission prompts for the skill's own phase files and the ledger directory.",
+  "description": "Injects the lean-orchestration skill body at session start in parts under the harness's per-hook size limit (and again after a compaction), re-injects the ledger index on resume, re-arms Step 0 with one short line on every prompt, and removes permission prompts for the skill's own phase files and the ledger directory.",
   "hooks": {
     "SessionStart": [
       {
@@ -9,10 +9,38 @@
             "type": "command",
             "command": "node",
             "args": [
-              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "1"
             ],
             "timeout": 5,
             "statusMessage": "Arming lean-orchestration..."
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "2"
+            ],
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "3"
+            ],
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "4"
+            ],
+            "timeout": 5
           }
         ]
       }
