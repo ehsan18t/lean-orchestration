@@ -79,7 +79,7 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 | **fixes** | Route → Ground → Recon + Clarify (if ambiguous) → Find → Dedup → Triage (filter) → Verify contested → Implement → Verify-impl → Deliver. **A defect already named in the prompt** replaces everything from Find through Implement with `references/diagnose.md`, whose loop ends in the fix and its regression test; Verify-impl and Deliver still follow. |
 | **feature** | Route → Ground → Recon → Clarify → Navigate → Synthesize → Implement → Verify-impl → Deliver. No Find. |
 | **refactor** | Route → Ground (the decision record and the won't-fix registry; a spec only if one exists) → Clarify (if ambiguous) → Navigate → Implement → Verify-impl (flipped to behavior preservation) → Deliver. No Find. |
-| **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Deliver (ledger updated). No Ground, Recon, Find, or review dispatch by default. |
+| **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Review (`finder-lite`, unless the change is a literal value, a copy string, or the ledger alone) → Deliver (ledger updated). No Ground, Recon, or Find. |
 
 Every path ends at Deliver, including the write-back in Step 11.
 
@@ -97,7 +97,7 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | **refactor** | `ground.md` (+ `grill.md` if Clarify reaches the grill) → `implement.md` → `verify.md` (Step 10, flipped to behavior preservation) → `deliver.md` |
 | **amend** | `amend.md` only, which carries its own verify and deliver |
 
-`ledger-template.md` is read once whenever a route creates a ledger (the grill at its start, or Step 2.75 when no grill ran) and is not listed per row.
+`ledger-template.md` is read once whenever a route creates a ledger (the grill at its start, or Step 2.75 when no grill ran) and is not listed per row. `design.md` and `prototype.md` load from `implement.md` Step 8 only when their condition fires, so a change inside an existing shape never pays for them.
 
 | File | Steps | Contents |
 |---|---|---|
@@ -106,7 +106,9 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | `references/find.md` | 4, 5-6 | Find, Dedup, Triage |
 | `references/diagnose.md` | 4-9 (fixes, defect named) | Reproduce, hypothesize, isolate, fix at the root, regression test; replaces Find through Implement |
 | `references/verify.md` | 7, 10 | Verify findings (burden direction), Verify implementation (gates, checklist walk, review, strike rule) |
-| `references/implement.md` | 8-9 | Synthesize and implement, with design, prototype and test-first |
+| `references/implement.md` | 8-9 | Synthesize and implement, test-first, delegation |
+| `references/design.md` | 8 (on condition) | Deep modules, seams, dependency categories, design it twice |
+| `references/prototype.md` | 8 (on condition) | A throwaway build that answers one question |
 | `references/deliver.md` | 11 | Deliver, verification-level tags, ledger update, write-back |
 | `references/amend.md` | A1-A6 | The whole amend route, self-contained |
 | `references/ledger-template.md` | any | The ledger format, its write points, the project-wide files (`wont-fix.md`, `decisions.md`, `glossary.md`), the checkpoint |
@@ -122,10 +124,10 @@ Everything a route needs lives inside this skill. No external skill is required,
 | Step 2 | research | `ground.md` | A load-bearing fact lives outside the repo. Runs in the background. |
 | Step 2.5 | grill | `grill.md` | Any vague, narrative, or underspecified request. **The default, not the exception.** Carries the domain model for a feature or consequential design. |
 | Steps 4-9 | diagnose | `diagnose.md` | The defect is already named. Replaces Find through Implement; its Phase 5 is the test-first loop for that fix. |
-| Step 8 | design | `implement.md` | The work reshapes a module boundary, interface, or seam. |
-| Step 8 | prototype | `implement.md` | A state model is uncertain enough that arguing costs more than building. |
+| Step 8 | design | `design.md` | The work reshapes a module boundary, interface, or seam. |
+| Step 8 | prototype | `prototype.md` | A state model or screen is uncertain enough that arguing costs more than building. |
 | Step 9 | test-first | `implement.md` | Implementing a feature, a refactor, or a fix that Find surfaced, at the seams the grill named (or Step 2.75 named). |
-| Step 10 | review | `verify.md` | One finder over the diff: always on feature, conditional on fixes, off by default on amend. |
+| Step 10 | review | `verify.md` | A reader who did not write the diff, on every change that ships code except a literal value, a copy string, or the ledger alone: full `finder` on a feature, on any diff that touches a seam, a shared type, more than one module, a user-visible number or persisted state, or on a defect class that needs sustained reasoning; `finder-lite` on a small single-module fix or amend; the preservation skeptic on a refactor. |
 
 Other installed skills stay available through the Skill tool, but no route depends on one. If the user names one, use it; never substitute it for a step here, and never reimplement a step from memory of one.
 
@@ -135,7 +137,7 @@ Other installed skills stay available through the Skill tool, but no route depen
 - **verify-findings**: every survivor adjudicated, including the ones returned INCONCLUSIVE.
 - **verify-implementation**: clean on correctness and spec, or the strike limit is reached, then escalate.
 - **fix / re-verify**: governed by the strike rule above, not by whether it feels done.
-- **amend**: every affected checklist item re-walked and marked met or not met, gates green, and the ledger records the correction; a not-met item is delivered as such with status left open, and a strike exits to grilling that one item.
+- **amend**: every affected checklist item re-walked and marked met or not met, gates green, the review's findings dispositioned, and the ledger records the correction; a not-met item is delivered as such with status left open, and a strike exits to grilling that one item.
 
 No open-ended "keep going until sure."
 
