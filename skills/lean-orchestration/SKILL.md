@@ -79,7 +79,7 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 | **fixes** | Route → Ground → Recon + Clarify (if ambiguous) → Find → Dedup → Triage (filter) → Verify contested → Implement → Verify-impl → Deliver. **A defect already named in the prompt** replaces everything from Find through Implement with `references/diagnose.md`, whose loop ends in the fix and its regression test; Verify-impl and Deliver still follow. |
 | **feature** | Route → Ground → Recon → Clarify → Navigate → Synthesize → Implement → Verify-impl → Deliver. No Find. |
 | **refactor** | Route → Ground (the decision record and the won't-fix registry; a spec only if one exists) → Clarify (if ambiguous) → Navigate → Implement → Verify-impl (flipped to behavior preservation) → Deliver. No Find. |
-| **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Review (`finder-lite`, unless the change is a literal value, a copy string, or the ledger alone) → Deliver (ledger updated). No Ground, Recon, or Find. |
+| **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Review (a reader who did not write the change, tier by stakes, unless the change is a literal value, a copy string, or the ledger alone) → Deliver (ledger updated). No Ground, Recon, or Find. |
 
 Every path ends at Deliver, including the write-back in Step 11.
 
@@ -127,7 +127,7 @@ Everything a route needs lives inside this skill. No external skill is required,
 | Step 8 | design | `design.md` | The work reshapes a module boundary, interface, or seam. |
 | Step 8 | prototype | `prototype.md` | A state model or screen is uncertain enough that arguing costs more than building. |
 | Step 9 | test-first | `implement.md` | Implementing a feature, a refactor, or a fix that Find surfaced, at the seams the grill named (or Step 2.75 named). |
-| Step 10 | review | `verify.md` | A reader who did not write the diff, on every change that ships code except a literal value, a copy string, or the ledger alone: full `finder` on a feature, on any diff that touches a seam, a shared type, more than one module, a user-visible number or persisted state, or on a defect class that needs sustained reasoning; `finder-lite` on a small single-module fix or amend; the preservation skeptic on a refactor. |
+| Step 10 | review | `verify.md` | A reader who did not write the diff, on every change that ships code except a literal value, a copy string, or the ledger alone: full `finder` on a feature, on any diff that touches a seam, a shared type, more than one module, a user-visible number or persisted state, or on a defect class that needs sustained reasoning; `finder-lite` on a small single-module fix or amend; a second, checklist-first finder when the change touches persisted state, money, security, or a user-visible number; the preservation skeptic on a refactor. |
 
 Other installed skills stay available through the Skill tool, but no route depends on one. If the user names one, use it; never substitute it for a step here, and never reimplement a step from memory of one.
 
