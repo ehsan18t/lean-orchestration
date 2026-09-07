@@ -2,7 +2,7 @@
   "$schema": "https://www.schemastore.org/claude-code-plugin-manifest.json",
   "name": "lean-orchestration",
   "version": "0.3.0",
-  "description": "Route every non-trivial task for the highest-quality output per token: inline vs. subagent per phase, gates before LLMs, adversarial verification only where it pays.",
+  "description": "Route every non-trivial task for the highest-quality output per token: inline vs. subagent per phase, gates before LLMs, adversarial verification only where it pays, and a per-task ledger so follow-ups never lose context.",
   "author": {
     "name": "Ehsan Khan",
     "url": "https://github.com/ehsan18t"
@@ -13,16 +13,23 @@
   "keywords": [
     "orchestration",
     "subagents",
-    "code-review",
+    "review",
     "token-efficiency",
-    "skills"
+    "skills",
+    "ledger"
   ],
   "userConfig": {
     "autostart": {
       "type": "boolean",
       "title": "Load lean-orchestration at session start",
-      "description": "Load the routing skill automatically when a session starts, so it is in force from your first message. Turn off to load it yourself with /lean-orchestration:lean.",
+      "description": "Inject the routing skill at session start and re-arm it on every prompt, so it is in force from your first message. Turn off to load it yourself with /lean-orchestration:lean.",
       "default": true
+    },
+    "ledger_in_project": {
+      "type": "boolean",
+      "title": "Store ledgers inside the project",
+      "description": "Off: ledgers live in Claude's per-project directory (~/.claude/projects/<project>/lean-orchestration/), shared by every session of this project and kept out of the repo. On: ledgers live in <project>/.lean-orchestration/, where you can commit or ignore them.",
+      "default": false
     }
   }
 }

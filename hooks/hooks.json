@@ -1,16 +1,47 @@
 {
-  "description": "Injects the lean-orchestration skill body at session start, and again after a compaction, so routing is in force from the first message.",
+  "description": "Injects the lean-orchestration skill body at session start (and again after a compaction), re-injects the ledger index on resume, re-arms Step 0 with one short line on every prompt, and removes permission prompts for the skill's own phase files and the ledger directory.",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear|compact",
+        "matcher": "startup|clear|compact|resume",
         "hooks": [
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/lean-autostart.mjs"],
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs"
+            ],
             "timeout": 5,
             "statusMessage": "Arming lean-orchestration..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.mjs"
+            ],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.mjs"
+            ],
+            "timeout": 5
           }
         ]
       }
