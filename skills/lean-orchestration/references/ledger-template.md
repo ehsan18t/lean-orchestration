@@ -61,8 +61,9 @@ updated: YYYY-MM-DD
 | Strike rule fires, assumption proves false, route corrected (Step 10) | the main agent | Log line, and the assumption or checklist item it changes. |
 | Deliver (Step 11) | the main agent | Checklist marks, files touched, status, `updated`, log line. |
 | Amend route | the main agent | The contradicted item, a log line naming the correction, status back to `open` if it was `done`. |
+| Writeup route (W4), when its harvest read this ledger | the main agent | One log line naming the writeup; nothing else changes. |
 
-`answer` and `report` routes create no ledger; if the grill ran on them, the ledger it created is marked done at Deliver. A report's triage goes to the won't-fix registry.
+`answer`, `report` and `writeup` routes create no ledger; if the grill ran on an answer or report, the ledger it created is marked done at Deliver, and a writeup that read a ledger appends one log line. A report's triage goes to the won't-fix registry.
 
 ## Project-wide files
 

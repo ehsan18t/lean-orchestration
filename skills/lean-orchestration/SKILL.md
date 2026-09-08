@@ -1,6 +1,6 @@
 ---
 name: lean-orchestration
-description: Use when starting any non-trivial task (a feature, bug hunt, review/audit, design critique, refactor, a follow-up that corrects or extends work already delivered, or a loose narrative request that mixes several of those) before dispatching any subagent or writing a plan. NOT for quick lookups, tight debug loops (a red gate or repro already in hand and a local fix), or single-file changes to work that has no ledger, EXCEPT a single-file change that can alter a user-visible number or wedge/lose state, which does route here. Governs one request, not one conversation: once its content is loaded, re-run Step 0 for each new request in the same conversation and either emit a fresh Route line or say in one line that the prior route still holds.
+description: Use when starting any non-trivial task (a feature, bug hunt, review/audit, design critique, refactor, a follow-up that corrects or extends work already delivered, a ticket, issue, epic, story, task, bug report or PR title/description to write, or a loose narrative request that mixes several of those) before dispatching any subagent or writing a plan. NOT for quick lookups, tight debug loops (a red gate or repro already in hand and a local fix), or single-file changes to work that has no ledger, EXCEPT a single-file change that can alter a user-visible number or wedge/lose state, which does route here. Governs one request, not one conversation: once its content is loaded, re-run Step 0 for each new request in the same conversation and either emit a fresh Route line or say in one line that the prior route still holds.
 ---
 
 # Lean Orchestration
@@ -17,7 +17,7 @@ This matters because the two halves of this file decay at different rates. The s
 
 ## Step 0 — Anti-trigger
 
-**First, the ledger check.** If the request corrects or extends work that has a ledger (see the index the hook injected, or the ledgers this conversation wrote), it is an **amend** and routes to `references/amend.md`, however small the change. The small-work exclusions below do not apply to it: a ledger that no longer matches the code is worse than none, because the next session reads it and builds on it. A one-word copy change to ledgered work is still an amend; recording it costs two narrow edits. Only a correction to work that never had a ledger falls through to the rules below.
+**First, the ledger check.** If the request corrects or extends work that has a ledger (see the index the hook injected, or the ledgers this conversation wrote), it is an **amend** and routes to `references/amend.md`, however small the change. The small-work exclusions below do not apply to it: a ledger that no longer matches the code is worse than none, because the next session reads it and builds on it. A one-word copy change to ledgered work is still an amend; recording it costs two narrow edits. Only a correction to work that never had a ledger falls through to the rules below. A request for a ticket or PR text about ledgered work is not a correction: it is a **writeup**, which reads the ledger and changes only its log.
 
 The frontmatter already excludes small work. A **tight debug loop** means a red gate or a repro is already in hand and the fix is local; a bug without one is not small, it is a `fixes` request. The one small case that routes *in*: a single-file change that can alter a user-visible number or wedge or lose data. That gets gates, then one skeptic, and skips the rest of this file. If in doubt on a small task with no ledger behind it, stay inline.
 
@@ -63,7 +63,7 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 
 | Axis | Values |
 |---|---|
-| Deliverable | answer / report / fixes / feature / refactor / amend |
+| Deliverable | answer / report / fixes / feature / refactor / amend / writeup |
 | Review objects | code / design-artifact / spec |
 | Scope | repo / branch-diff / module / file |
 | Stakes | reversible note to auto-applied edit |
@@ -80,8 +80,9 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 | **feature** | Route → Ground → Recon → Clarify → Navigate → Synthesize → Implement → Verify-impl → Deliver. No Find. |
 | **refactor** | Route → Ground (the decision record and the won't-fix registry; a spec only if one exists) → Clarify (if ambiguous) → Navigate → Implement → Verify-impl (flipped to behavior preservation) → Deliver. No Find. |
 | **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Review (a reader who did not write the change, tier by stakes, unless the change is a literal value, a copy string, or the ledger alone) → Deliver (ledger updated). No Ground, Recon, or Find. |
+| **writeup** | Route → Harvest (the ledger for decisions and criteria, the diff and the code for the instances and surfaces, the conversation last) → Draft to the type's example → Emit in chat with the handoff. No Ground, Find, Implement or Verify-impl; the three-hat check in `references/writeup.md` is the verification, and the route creates no ledger. |
 
-Every path ends at Deliver, including the write-back in Step 11.
+Every path ends at Deliver, including the write-back in Step 11; amend and writeup carry their own.
 
 ### Load the phase files for your route
 
@@ -96,6 +97,7 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | **feature** | `ground.md` → `grill.md` → `implement.md` → `verify.md` (Step 10) → `deliver.md` |
 | **refactor** | `ground.md` (+ `grill.md` if Clarify reaches the grill) → `implement.md` → `verify.md` (Step 10, flipped to behavior preservation) → `deliver.md` |
 | **amend** | `amend.md` only, which carries its own verify and deliver |
+| **writeup** | `writeup.md` only, which carries its own harvest, check and emit |
 
 `ledger-template.md` is read once whenever a route creates a ledger (the grill at its start, or Step 2.75 when no grill ran) and is not listed per row. `design.md` and `prototype.md` load from `implement.md` Step 8 only when their condition fires, so a change inside an existing shape never pays for them.
 
@@ -111,6 +113,7 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | `references/prototype.md` | 8 (on condition) | A throwaway build that answers one question |
 | `references/deliver.md` | 11 | Deliver, verification-level tags, ledger update, write-back |
 | `references/amend.md` | A1-A6 | The whole amend route, self-contained |
+| `references/writeup.md` | W1-W5 | The whole writeup route: harvest, title grammar, narrative and blocks, rules, the three-hat check and handoff; one example per type in `references/writeup/`, read only for the type requested |
 | `references/ledger-template.md` | any | The ledger format, its write points, the project-wide files (`wont-fix.md`, `decisions.md`, `glossary.md`), the checkpoint |
 
 Read each file once per request and hold it for that request. A new request restarts at Step 0 and reloads only what its own route names. **Never execute a phase from memory of a previous request**: that is the same failure as inheriting the restrictions without the routing, one file down. If you find yourself about to skip a read because you think you recall the rule, read it.

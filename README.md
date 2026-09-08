@@ -10,7 +10,7 @@ It is model-agnostic. Nothing in it names a model; roles inherit the session's e
 
 | Component | What it does |
 | --- | --- |
-| `lean-orchestration` skill | The routing procedure: anti-trigger, escalation ladder, cost model, six routes, and the phase files each route loads. |
+| `lean-orchestration` skill | The routing procedure: anti-trigger, escalation ladder, cost model, seven routes, and the phase files each route loads. |
 | Internal procedures | The grill, the diagnosis loop, research, design, prototype, test-first, and review, all inside the skill. No other skill is required. |
 | Ledger | One file per task, written by the grill and kept current through delivery, so a follow-up reads it instead of re-deriving it. |
 | `navigator` agent | Read-only. Answers one precise question about code you will not edit, returns anchors plus only load-bearing lines. |
@@ -42,6 +42,9 @@ Every request starts at Step 0, the anti-trigger, which keeps small work inline.
 | feature | New behavior | Grill first, then implement test-first, then verify against the checklist. |
 | refactor | Same behavior, new shape | Implement, then a skeptic hunts for behavior changes. |
 | amend | A correction or extension to work already delivered | Load the ledger, record what the correction contradicts, change it, re-walk only the affected items. |
+| writeup | A ticket, issue, epic, story, task, bug report, or PR title or description to write | Harvest the facts from the ledger or the diff, draft to the type's example, emit copyable text with a handoff. |
+
+The writeup route exists because a model asked for a ticket writes from memory of the conversation, at the altitude of "updated the typography" instead of "Roboto to Inter", with the blast radius missing and the reason a platitude, and writes it differently every time. The route harvests the instances and surfaces from the source first, then drafts to a fixed shape: a title in the grammar of its type (an epic is a noun phrase, a story or task an imperative, a bug the failure and never the fix), a headingless narrative in four fixed moves (what, why, boundary, judgment), then only the blocks the type calls for (acceptance criteria; steps, expected, actual and environment for a bug; verified and review-first for a PR). The blocks are fixed by type, and a move appears only when it changes what a reader does or believes, so out-of-scope is stated only when a knowledgeable reader would assume the opposite; anchors are symbols and directories, never line numbers; and one example per type beside the phase file, read only for the type requested, is what keeps the output the same a month later. Three questions gate the emit: a product manager could rank it, a project manager could sequence and size it, an engineer could start and would know when they are done.
 
 The amend route is the one most sessions spend most of their time on. Work is never one-shot: the text is wrong, a business rule turned out different, the new feature has a bug. Without a ledger each of those either re-grounds the whole task or drops to an unrecorded inline edit, and the context of the task rots. With one, each correction is a one-line change to a written record, the edit itself, and a low-effort read by a fresh context for anything beyond a literal or a copy string.
 

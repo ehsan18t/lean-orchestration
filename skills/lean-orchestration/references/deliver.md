@@ -1,6 +1,6 @@
 # Deliver — Step 11
 
-Loaded from `SKILL.md` Step 1 on every route except amend, which carries its own deliver. Every other path ends here, including the ledger update and the write-back.
+Loaded from `SKILL.md` Step 1 on every route except amend and writeup, which carry their own. Every other path ends here, including the ledger update and the write-back.
 
 ## Step 11 — Deliver
 
