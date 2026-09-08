@@ -80,7 +80,7 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 | **feature** | Route → Ground → Recon → Clarify → Navigate → Synthesize → Implement → Verify-impl → Deliver. No Find. |
 | **refactor** | Route → Ground (the decision record and the won't-fix registry; a spec only if one exists) → Clarify (if ambiguous) → Navigate → Implement → Verify-impl (flipped to behavior preservation) → Deliver. No Find. |
 | **amend** | Route → Load ledger → Classify the correction → Clarify (only what it opened) → Implement inline → Verify affected items → Review (a reader who did not write the change, tier by stakes, unless the change is a literal value, a copy string, or the ledger alone) → Deliver (ledger updated). No Ground, Recon, or Find. |
-| **writeup** | Route → Harvest (the ledger for decisions and criteria, the diff and the code for the instances and surfaces, the conversation last) → Draft to the type's example → Emit in chat with the handoff. No Ground, Find, Implement or Verify-impl; the three-hat check in `references/writeup.md` is the verification, and the route creates no ledger. |
+| **writeup** | Route → Harvest (the ledger for decisions and criteria, the diff and the code for the instances and surfaces, the conversation last) → Draft it the way you would explain the work → Emit in chat with the handoff. No Ground, Find, Implement or Verify-impl; the completeness and subtraction checks in `references/writeup.md` are the verification, and the route creates no ledger. |
 
 Every path ends at Deliver, including the write-back in Step 11; amend and writeup carry their own.
 
@@ -113,7 +113,7 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | `references/prototype.md` | 8 (on condition) | A throwaway build that answers one question |
 | `references/deliver.md` | 11 | Deliver, verification-level tags, ledger update, write-back |
 | `references/amend.md` | A1-A6 | The whole amend route, self-contained |
-| `references/writeup.md` | W1-W5 | The whole writeup route: harvest, title grammar, narrative and blocks, rules, the three-hat check and handoff; one example per type in `references/writeup/`, read only for the type requested |
+| `references/writeup.md` | W1-W5 | The whole writeup route: the complete-and-readable bar, harvest, type and title grammar, the order a person explains work in, form following content, the rules, the emit checks and handoff |
 | `references/ledger-template.md` | any | The ledger format, its write points, the project-wide files (`wont-fix.md`, `decisions.md`, `glossary.md`), the checkpoint |
 
 Read each file once per request and hold it for that request. A new request restarts at Step 0 and reloads only what its own route names. **Never execute a phase from memory of a previous request**: that is the same failure as inheriting the restrictions without the routing, one file down. If you find yourself about to skip a read because you think you recall the rule, read it.
