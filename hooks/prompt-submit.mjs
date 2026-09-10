@@ -18,7 +18,7 @@ try {
     hookSpecificOutput: {
       hookEventName: "UserPromptSubmit",
       additionalContext:
-        "lean-orchestration: run Step 0 on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. Output: answer on line one, then bullets or a table and no paragraphs, bold label opening each line, nothing important dropped.",
+        "lean-orchestration: run Step 0 on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. Output: answer on line one, then short sections of bullets and no paragraphs, sections and bullets both ordered most important first, nothing important dropped.",
     },
   });
 } catch {
