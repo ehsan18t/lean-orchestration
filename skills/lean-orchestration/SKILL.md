@@ -113,7 +113,7 @@ Steps 2 through 11 live in `references/`, next to this file, and load only when 
 | `references/prototype.md` | 8 (on condition) | A throwaway build that answers one question |
 | `references/deliver.md` | 11 | Deliver, verification-level tags, ledger update, write-back |
 | `references/amend.md` | A1-A6 | The whole amend route, self-contained |
-| `references/writeup.md` | W1-W4 | The writeup core: the bar, harvest, type and title grammar, the rules every type shares, the emit checks. One file per type under `references/writeup/` carries that type's reader, sections, form and rules, and is read before drafting |
+| `references/writeup.md` | router, bar, W1-W4 | The writeup core: the bar, harvest, type and title grammar, the rules every type shares, the emit checks. One file per type under `references/writeup/` carries that type's reader, sections, form and rules, and is read before drafting |
 | `references/ledger-template.md` | any | The ledger format, its write points, the project-wide files (`wont-fix.md`, `decisions.md`, `glossary.md`), the checkpoint |
 
 Read each file once per request and hold it for that request. A new request restarts at Step 0 and reloads only what its own route names. **Never execute a phase from memory of a previous request**: that is the same failure as inheriting the restrictions without the routing, one file down. If you find yourself about to skip a read because you think you recall the rule, read it.
