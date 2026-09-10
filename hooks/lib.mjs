@@ -169,8 +169,14 @@ export const PART_LIMIT = 8500;
 export const SLOTS = 6;
 // Room left inside every part for the header line and the opening and closing tags, which
 // buildPart adds after the split. Without it a part sized to exactly the limit is emitted
-// over it and truncated.
+// over it. The widest framing buildPart can prepend is 157 bytes.
 const FRAMING_RESERVE = 220;
+// A fence marker, in either CommonMark spelling and with the indent the spec allows.
+const FENCE = /^ {0,3}(```|~~~)/;
+
+function fenceMarkers(text) {
+  return (text.match(/^ {0,3}(```|~~~)/gm) || []).length;
+}
 
 // Cuts a line too long to fit, at spaces first and inside a word only as a last resort.
 // Never returns an empty fragment and always makes progress, so a limit smaller than one
@@ -191,9 +197,10 @@ function splitLongLine(line, cap) {
       while (rest && Buffer.byteLength(rest) > limit) {
         let n = 1;
         while (n < rest.length && Buffer.byteLength(rest.slice(0, n + 1)) <= limit) n++;
-        // Never cut between the halves of a surrogate pair: the two halves encode
-        // separately as replacement characters and the character is lost.
-        if (n > 1 && n < rest.length && /[\uD800-\uDBFF]/.test(rest[n - 1])) n--;
+        // Never end a fragment on the first half of a surrogate pair: the two halves
+        // encode separately as replacement characters and the character is lost. Taking
+        // one code unit more can exceed the limit by a byte, which is the lesser harm.
+        if (n < rest.length && /[\uD800-\uDBFF]/.test(rest[n - 1])) n = n > 1 ? n - 1 : 2;
         out.push(rest.slice(0, n));
         rest = rest.slice(n);
       }
@@ -206,52 +213,62 @@ function splitLongLine(line, cap) {
   return out;
 }
 
-// Last resort when a piece is still over the limit after the blank-line split: cut it at
+// Last resort when a piece is still over the limit after the paragraph split: cut it at
 // line boundaries, then inside a line. A cut inside a fenced block closes the fence and
-// reopens it on the next piece, so no part carries an unterminated code block.
+// reopens it with the same marker and info string, so no part carries an unterminated
+// code block and no part opens one the reader cannot type-check.
 function hardSplit(piece, limit) {
   if (Buffer.byteLength(piece) <= limit) return [piece];
   const out = [];
   let chunk = null; // null means nothing started yet, so a leading blank line survives
   let inFence = false;
-  let reopen = false;
+  let opener = "```";
+  let reopen = null;
+  const closer = () => opener.trim().slice(0, 3);
+  // While inside a fence, leave room for the closing marker cut() will append.
+  const room = () => (inFence ? limit - closer().length - 1 : limit);
   const cut = () => {
     if (chunk === null) return;
-    out.push(inFence ? `${chunk}\n\`\`\`` : chunk);
-    reopen = inFence;
+    out.push(inFence ? `${chunk}\n${closer()}` : chunk);
+    reopen = inFence ? opener : null;
     chunk = null;
   };
   const add = (line) => {
-    if (chunk === null) chunk = reopen ? `\`\`\`\n${line}` : line;
+    if (chunk === null) chunk = reopen ? `${reopen}\n${line}` : line;
     else chunk += `\n${line}`;
   };
   for (const line of piece.split("\n")) {
     const bytes = Buffer.byteLength(line);
-    if (bytes + 1 > limit) {
+    if (bytes + 1 > room()) {
       cut();
-      for (const fragment of splitLongLine(line, limit - 8)) {
+      for (const fragment of splitLongLine(line, room() - 8)) {
         add(fragment);
         cut();
       }
       continue;
     }
-    if (chunk !== null && Buffer.byteLength(chunk) + bytes + 1 > limit) cut();
+    if (chunk !== null && Buffer.byteLength(chunk) + bytes + 1 > room()) cut();
     add(line);
-    if (/^```/.test(line)) inFence = !inFence;
+    if (FENCE.test(line)) {
+      if (!inFence) opener = line;
+      inFence = !inFence;
+    }
   }
   cut();
   return out;
 }
 
-// Splits at markdown headings (never inside a fenced block), packing sections greedily
-// into parts under the limit; a single oversize section is split at blank lines, and
-// anything still over the limit after that goes to hardSplit.
+// Splits at markdown headings, packing sections greedily into parts under the limit; a
+// single oversize section is split at blank lines, and anything still over the limit after
+// that goes to hardSplit. None of the three cuts fires inside a fenced block: a heading, a
+// blank line and a long line all occur inside code, and a fence torn across two parts
+// leaves one part opening a block that nothing closes.
 export function splitIntoParts(text, limit) {
   const sections = [];
   let current = "";
   let inFence = false;
   for (const line of text.split("\n")) {
-    if (/^```/.test(line)) inFence = !inFence;
+    if (FENCE.test(line)) inFence = !inFence;
     if (!inFence && /^#{1,3} /.test(line) && current) {
       sections.push(current);
       current = "";
@@ -266,12 +283,14 @@ export function splitIntoParts(text, limit) {
       continue;
     }
     let chunk = "";
+    let open = false;
     for (const para of sec.split("\n\n")) {
-      if (chunk && Buffer.byteLength(chunk) + Buffer.byteLength(para) + 2 > limit) {
+      if (chunk && !open && Buffer.byteLength(chunk) + Buffer.byteLength(para) + 2 > limit) {
         raw.push(chunk);
         chunk = "";
       }
       chunk += (chunk ? "\n\n" : "") + para;
+      if (fenceMarkers(para) % 2 === 1) open = !open;
     }
     if (chunk) raw.push(chunk);
   }
@@ -295,7 +314,7 @@ export function buildPart(payload, part, slots = SLOTS) {
   const k = parts.length;
   const emitted = Math.min(k, slots);
   if (!Number.isInteger(part) || part < 1 || part > emitted) return null;
-  const short = k > emitted ? `, of which only ${emitted} have a slot to run in` : "";
+  const short = k > emitted ? `, of which only ${emitted} ${emitted === 1 ? "has" : "have"} a slot to run in` : "";
   const head = k > 1 ? `[lean-orchestration injection, part ${part} of ${k}${short}; the parts together are one document]\n` : "";
   const open = part === 1 ? "<EXTREMELY_IMPORTANT>\n" : "";
   const last = part === emitted;
@@ -304,16 +323,26 @@ export function buildPart(payload, part, slots = SLOTS) {
   let overrun = "";
   if (last && k > emitted) {
     overrun =
-      `\n\n[${k - emitted} of this document's ${k} parts had no slot to run in and were dropped. ` +
-      "Read SKILL.md in the skill directory named in part 1 of this injection, with the Read tool, " +
+      `\n\n[${k - emitted} of this document's ${k} parts had no slot to run in and were dropped, ` +
+      "and this part may be cut short. Read the lean-orchestration SKILL.md with the Read tool " +
       "before acting on anything in this document.]";
     // This part's tail is being dropped anyway, so trim it to make room for saying so,
     // rather than shrinking every other part to reserve space only this one needs.
     const room = PART_LIMIT - Buffer.byteLength(`${open}${head}${overrun}${close}`);
+    if (room <= 0) body = "";
     while (Buffer.byteLength(body) > room) {
       const at = body.lastIndexOf("\n", body.length - 2);
-      body = body.slice(0, Math.max(0, at));
+      if (at > 0) {
+        body = body.slice(0, at);
+        continue;
+      }
+      // No line boundary left: cut inside the line rather than discarding the whole part.
+      let n = body.length;
+      while (n > 0 && Buffer.byteLength(body.slice(0, n)) > room) n--;
+      if (n > 0 && /[\uD800-\uDBFF]/.test(body[n - 1])) n--;
+      body = body.slice(0, n);
     }
   }
   return `${open}${head}${body}${overrun}${close}`;
 }
+
