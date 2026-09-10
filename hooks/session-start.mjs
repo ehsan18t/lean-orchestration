@@ -35,139 +35,13 @@
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { autostartEnabled, emit, ledgerBlock, readStdinJson, resolveLedgerDir } from "./lib.mjs";
+import { fileURLToPath } from "node:url";
+import { autostartEnabled, buildPart, emit, ledgerBlock, readStdinJson, resolveLedgerDir } from "./lib.mjs";
 
-export const PART_LIMIT = 8500;
-// How many times hooks.json registers this script. `node scripts/check-injection.mjs`
-// fails if the two ever disagree, because a part with no slot to run in is never emitted.
-// Six covers about two and a half times the current payload; each unused slot costs one
-// node start that exits immediately, which is why this is not simply set very high.
-export const SLOTS = 6;
-// Bytes held back from a part's budget for the overrun notice, so saying "the tail was
-// dropped" cannot itself push the part over the limit and be truncated.
-const OVERRUN_RESERVE = 400;
-const PART = Math.max(1, Number(process.argv[2] || "1"));
-
-// Last resort when a piece is still over the limit after the blank-line split: cut it at
-// line, then word, then character boundaries. Without this a single paragraph or table
-// larger than the limit goes out whole and the harness truncates it with no error.
-function hardSplit(piece, limit) {
-  if (Buffer.byteLength(piece) <= limit) return [piece];
-  const out = [];
-  const flush = (s) => {
-    if (s) out.push(s);
-  };
-  let chunk = "";
-  for (const line of piece.split("\n")) {
-    if (Buffer.byteLength(line) + 1 > limit) {
-      flush(chunk);
-      chunk = "";
-      let buf = "";
-      for (const word of line.split(" ")) {
-        if (buf && Buffer.byteLength(buf) + Buffer.byteLength(word) + 1 > limit) {
-          flush(buf);
-          buf = "";
-        }
-        if (Buffer.byteLength(word) > limit) {
-          flush(buf);
-          buf = "";
-          let rest = word;
-          while (Buffer.byteLength(rest) > limit) {
-            let n = Math.floor(limit / 4);
-            while (n < rest.length && Buffer.byteLength(rest.slice(0, n + 1)) <= limit) n++;
-            flush(rest.slice(0, n));
-            rest = rest.slice(n);
-          }
-          buf = rest;
-          continue;
-        }
-        buf += (buf ? " " : "") + word;
-      }
-      flush(buf);
-      continue;
-    }
-    if (chunk && Buffer.byteLength(chunk) + Buffer.byteLength(line) + 1 > limit) {
-      flush(chunk);
-      chunk = "";
-    }
-    chunk += (chunk ? "\n" : "") + line;
-  }
-  flush(chunk);
-  return out;
-}
-
-// Splits at markdown headings (never inside a fenced block), packing sections greedily
-// into parts under the limit; a single oversize section is split at blank lines, and
-// anything still over the limit after that is cut by hardSplit.
-export function splitIntoParts(text, limit) {
-  const sections = [];
-  let current = "";
-  let inFence = false;
-  for (const line of text.split("\n")) {
-    if (/^```/.test(line)) inFence = !inFence;
-    if (!inFence && /^#{1,3} /.test(line) && current) {
-      sections.push(current);
-      current = "";
-    }
-    current += (current ? "\n" : "") + line;
-  }
-  if (current) sections.push(current);
-  const raw = [];
-  for (const sec of sections) {
-    if (Buffer.byteLength(sec) <= limit) {
-      raw.push(sec);
-      continue;
-    }
-    let chunk = "";
-    for (const para of sec.split("\n\n")) {
-      if (chunk && Buffer.byteLength(chunk) + Buffer.byteLength(para) + 2 > limit) {
-        raw.push(chunk);
-        chunk = "";
-      }
-      chunk += (chunk ? "\n\n" : "") + para;
-    }
-    if (chunk) raw.push(chunk);
-  }
-  const pieces = raw.flatMap((piece) => hardSplit(piece, limit));
-  const parts = [];
-  let part = "";
-  for (const piece of pieces) {
-    if (part && Buffer.byteLength(part) + Buffer.byteLength(piece) + 2 > limit) {
-      parts.push(part);
-      part = "";
-    }
-    part += (part ? "\n\n" : "") + piece;
-  }
-  if (part) parts.push(part);
-  return parts;
-}
-
-// Returns the text this slot injects, or null when it has nothing to emit.
-// Separated from emitPart so scripts/check-injection.mjs can assert on it without stdin.
-export function buildPart(payload, part, slots = SLOTS) {
-  // A part with no slot to run in is never emitted, so the count that matters is how many
-  // slots there are, not how many parts the payload wants. When it wants more, the tail is
-  // unreachable: say so on the last slot that does run, and keep room for saying it.
-  let parts = splitIntoParts(payload, PART_LIMIT);
-  const overruns = parts.length > slots;
-  if (overruns) parts = splitIntoParts(payload, PART_LIMIT - OVERRUN_RESERVE);
-  const k = parts.length;
-  const emitted = Math.min(k, slots);
-  if (part > emitted) return null;
-  const head =
-    emitted > 1
-      ? `[lean-orchestration injection, part ${part} of ${overruns ? `${k}, of which only ${emitted} have a slot to run in` : k}; the parts together are one document]\n`
-      : "";
-  const open = part === 1 ? "<EXTREMELY_IMPORTANT>\n" : "";
-  const last = part === emitted;
-  const overrun =
-    last && overruns
-      ? `\n\n[${k - emitted} of this document's ${k} parts had no slot to run in and were dropped. Read SKILL.md at the base directory named above with the Read tool now, before acting on anything in this document.]`
-      : "";
-  const close = last ? "\n</EXTREMELY_IMPORTANT>" : "";
-  return `${open}${head}${parts[part - 1]}${overrun}${close}`;
-}
+// The slot this invocation is. hooks.json passes 1 through SLOTS. A missing argument means
+// slot 1, so the hook still works when run by hand; a present but malformed one emits nothing
+// rather than duplicating slot 1 under a bad registration.
+const PART = process.argv[2] === undefined ? 1 : Number(process.argv[2]);
 
 function emitPart(payload) {
   const text = buildPart(payload, PART);
@@ -175,9 +49,7 @@ function emitPart(payload) {
   emit({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: text } });
 }
 
-const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isMain) try {
+try {
   if (!autostartEnabled()) process.exit(0);
 
   // Resolved relative to this file rather than to CLAUDE_PLUGIN_ROOT, so the hook also
@@ -252,4 +124,3 @@ if (isMain) try {
 } catch {
   process.exit(0);
 }
-
