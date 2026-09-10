@@ -41,6 +41,24 @@
               "4"
             ],
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "5"
+            ],
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.mjs",
+              "6"
+            ],
+            "timeout": 5
           }
         ]
       }
