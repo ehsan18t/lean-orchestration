@@ -2,3 +2,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+# local A/B eval harness: fixture project, tasks, results, baseline and its scripts
+evals/
+scripts/ab-run.mjs
+scripts/ab/
+# ledgers written inside a project when ledger_in_project is on
+.lean-orchestration/
