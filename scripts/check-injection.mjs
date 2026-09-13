@@ -20,7 +20,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PART_LIMIT, SLOTS, buildPart, splitIntoParts } from "../hooks/lib.mjs";
+import { OUTPUT_LABEL, PART_LIMIT, SLOTS, buildPart, injectedReminder, pluginVersion, reminderLead, splitIntoParts } from "../hooks/lib.mjs";
+import { staleAgents } from "./sync-agents.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const HOOK = join(ROOT, "hooks", "session-start.mjs");
@@ -183,6 +184,57 @@ try {
   const start = Date.now();
   splitIntoParts("# H\n\n€€€€€", 2);
   check("a limit smaller than one character terminates", Date.now() - start < 1000, "splitIntoParts did not return");
+
+  // 6. The session-tier agents are generated from their default-tier sources by
+  //    scripts/sync-agents.mjs; a stale one ships the old rules under a new model.
+  let stale;
+  try {
+    stale = staleAgents();
+  } catch (error) {
+    stale = [`(could not build them: ${error.message})`];
+  }
+  check("the session-tier agents match their sources", stale.length === 0, `stale: ${stale.join(", ")}; run node scripts/sync-agents.mjs`);
+  let testsPass = true;
+  let testTail = "";
+  try {
+    execFileSync(process.execPath, ["--test", join(ROOT, "scripts", "sync-agents.test.mjs")], { encoding: "utf8", stdio: "pipe" });
+  } catch (error) {
+    testsPass = false;
+    testTail = String(error.stdout || error.message).trim().split("\n").slice(-6).join(" | ");
+  }
+  check("scripts/sync-agents.test.mjs passes", testsPass, testTail);
+
+  // 7. The per-prompt reminder names the plugin version, and the transcript scripts recognize
+  //    it and its unversioned form, but never a quote of it.
+  const version = pluginVersion();
+  const reminder =
+    JSON.parse(
+      execFileSync(process.execPath, [join(ROOT, "hooks", "prompt-submit.mjs")], {
+        input: "{}",
+        encoding: "utf8",
+        env: { ...process.env, LEAN_ORCHESTRATION_AUTOSTART: "on" },
+      }) || "{}",
+    ).hookSpecificOutput?.additionalContext ?? "";
+  check("the plugin version is readable", Boolean(version), "pluginVersion() found no version in .claude-plugin/plugin.json");
+  check("the reminder opens with the plugin name and version", reminder.startsWith(`lean-orchestration ${version}: run Step 0`), `the reminder opens: ${reminder.slice(0, 60)}`);
+  const attached = (text, hookEvent = "UserPromptSubmit") => ({ type: "attachment", attachment: { type: "hook_additional_context", hookEvent, content: [text] } });
+  const fallback = `${reminderLead(null)}${reminder.slice(reminderLead(version).length)}`;
+  check("an unreadable version falls back to the unversioned opening", reminderLead(null) === "lean-orchestration: run Step 0", `reminderLead(null) is ${JSON.stringify(reminderLead(null))}`);
+  // The first reminder that carried the output rules (da7f95b), so older transcripts still count.
+  const firstShipped =
+    "lean-orchestration: run Step 0 on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. Output: answer first, the important with its reasoning, the rest compressed, nothing padded.";
+  check(
+    "the transcript scripts recognize the reminder, versioned, unversioned and first shipped, with its output label",
+    [reminder, fallback, firstShipped].every((t) => (injectedReminder(attached(t)) ?? "").includes(OUTPUT_LABEL)),
+    "injectedReminder() missed the current reminder, its fallback, or the first shipped wording",
+  );
+  check(
+    "a quote of the reminder is not an injection",
+    injectedReminder({ type: "user", toolUseResult: { stdout: reminder } }) === null &&
+      injectedReminder(attached(reminder, "SessionStart")) === null &&
+      injectedReminder(attached(`Another hook quoting it: ${reminder}`)) === null,
+    "injectedReminder() counted a tool result, a SessionStart attachment, or a hook context that only quotes the reminder",
+  );
 } finally {
   rmSync(FIXTURE, { recursive: true, force: true });
 }

@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { OUTPUT_LABEL, injectedReminder } from "../hooks/lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -24,8 +25,10 @@ const PROJECT = opt("--project", "");
 const MIN = Number(opt("--min-messages", "3"));
 
 const root = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
-// The per-prompt reminder carries this phrase only when the hook injected it; the file text itself can appear in a transcript for other reasons.
-const RULES = /Output: answer first, the important with its reasoning/;
+// A session has the rules only when the per-prompt hook injected a reminder carrying its
+// output label. hooks/lib.mjs recognizes the reminder, with or without a version, and
+// never counts a tool result, diff or message that merely quotes it.
+const injectsRules = (line) => (injectedReminder(line) ?? "").includes(OUTPUT_LABEL);
 
 function words(text) {
   const noCode = text.replace(/```[\s\S]*?```/g, " ");
@@ -51,13 +54,13 @@ function analyze(path) {
   }
   const s = { counts: [], rules: false, first: null };
   for (const raw of lines) {
-    if (RULES.test(raw)) s.rules = true;
     let line;
     try {
       line = JSON.parse(raw);
     } catch {
       continue;
     }
+    if (injectsRules(line)) s.rules = true;
     if (!s.first && line.timestamp) s.first = line.timestamp;
     if (line.type !== "assistant") continue;
     const content = line.message && line.message.content;

@@ -17,6 +17,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { injectedReminder } from "../hooks/lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -33,7 +34,6 @@ const root = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "
 // "Route:" within the first few characters of a line: covers `Route:`, **Route:**, - Route:, > Route:
 const ROUTE = /(^|\n)[^\n]{0,6}Route:/;
 const HOLDS = /prior route (still )?(holds|covers)/i;
-const REMINDER = /lean-orchestration: run Step 0/;
 const STRIP_REMINDERS = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
 
 function textOf(content) {
@@ -71,8 +71,9 @@ function analyze(path) {
     } catch {
       continue;
     }
-    // Hook output is stored as its own attachment line, not inside the user message.
-    if (REMINDER.test(rawLine)) s.reminder = true;
+    // Hook output is stored as its own attachment line, not inside the user message; a quote
+    // of the reminder in a tool result or message is not one (hooks/lib.mjs).
+    if (injectedReminder(line)) s.reminder = true;
     if (!s.first && line.timestamp) s.first = line.timestamp;
     if (!s.cwd && line.cwd) s.cwd = line.cwd;
     const content = line.message && line.message.content;

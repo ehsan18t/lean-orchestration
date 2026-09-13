@@ -10,7 +10,7 @@
 // Respects the same setting as the session-start hook: with autostart off there is
 // no body to point at, so this emits nothing.
 
-import { autostartEnabled, emit } from "./lib.mjs";
+import { OUTPUT_LABEL, autostartEnabled, emit, reminderLead } from "./lib.mjs";
 
 try {
   if (!autostartEnabled()) process.exit(0);
@@ -18,7 +18,7 @@ try {
     hookSpecificOutput: {
       hookEventName: "UserPromptSubmit",
       additionalContext:
-        "lean-orchestration: run Step 0 on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. Output: answer on line one, then short sections of bullets and no paragraphs, sections and bullets both ordered most important first, nothing important dropped.",
+        `${reminderLead()} on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. ${OUTPUT_LABEL} answer on line one, then short sections of bullets and no paragraphs, sections and bullets both ordered most important first, nothing important dropped.`,
     },
   });
 } catch {

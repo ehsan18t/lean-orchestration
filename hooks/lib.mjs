@@ -5,6 +5,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 const OFF = new Set(["off", "false", "0", "no"]);
 const ON = new Set(["on", "true", "1", "yes"]);
@@ -148,6 +149,38 @@ export function ledgerBlock(dir) {
 
 export function emit(payload) {
   process.stdout.write(JSON.stringify(payload));
+}
+
+// The per-prompt reminder opens "lean-orchestration <version>: run Step 0" (earlier releases
+// had no version) and carries its output rules after OUTPUT_LABEL. prompt-submit.mjs builds
+// the opening with reminderLead(); scripts/output-length.mjs and scripts/route-rate.mjs find
+// the reminder with injectedReminder(). The wording lives here once.
+export const OUTPUT_LABEL = "Output:";
+const REMINDER_OPENING = /^lean-orchestration(?: [0-9][^\s:]*)?: run Step 0/;
+
+// The version in .claude-plugin/plugin.json, or null when it cannot be read.
+export function pluginVersion() {
+  try {
+    const manifest = join(dirname(fileURLToPath(import.meta.url)), "..", ".claude-plugin", "plugin.json");
+    const version = JSON.parse(readFileSync(manifest, "utf8")).version;
+    return typeof version === "string" && /^[0-9][^\s:]*$/.test(version) ? version : null;
+  } catch {
+    return null;
+  }
+}
+
+export function reminderLead(version = pluginVersion()) {
+  return `lean-orchestration${version ? ` ${version}` : ""}: run Step 0`;
+}
+
+// The reminder a transcript line carries when the per-prompt hook injected it, else null.
+// Only a UserPromptSubmit hook_additional_context attachment counts: a tool result, diff or
+// message that quotes the reminder is not one.
+export function injectedReminder(line) {
+  const a = line && line.type === "attachment" ? line.attachment : null;
+  if (!a || a.type !== "hook_additional_context" || a.hookEvent !== "UserPromptSubmit") return null;
+  const parts = Array.isArray(a.content) ? a.content : [a.content];
+  return parts.find((c) => typeof c === "string" && REMINDER_OPENING.test(c)) ?? null;
 }
 
 // --- Splitting the session-start injection ----------------------------------------
