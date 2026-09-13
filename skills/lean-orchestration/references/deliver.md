@@ -12,7 +12,7 @@ Tag each finding with its verification level so the reader knows where to spend 
 
 ## Update the ledger
 
-On any **feature**, **fixes** or **refactor** route the ledger already exists (the grill created it, or Step 2.75 did) and is brought current before the deliverable is written: checklist marks, files touched, `updated`, a log line, and `status` (`open` while anything is unmet or not checked, `done` otherwise). Copy to `wont-fix.md` any won't-fix entry that must stay settled beyond this task, so a later report on the same area does not reparade it.
+On any **feature**, **fixes** or **refactor** route the ledger already exists (the grill created it, or Step 2.75 did) and is brought current before the deliverable is written: checklist marks, the `Files` build map brought current, `updated`, a log line, and `status` (`open` while anything is unmet or not checked, `done` otherwise; an item marked deferred does not hold it open, and the deliverable names each deferred item). Copy to `wont-fix.md` any won't-fix entry that must stay settled beyond this task, so a later report on the same area does not reparade it.
 
 The **answer** and **report** routes create no ledger at Deliver. If the grill ran on one of them, its ledger already exists and is marked `done` here with the checklist walked (for a report, the items are the coverage the review promised). A report's triage decisions that should stay settled go into the won't-fix registry (`wont-fix.md` in the ledger directory), one line each with the reason.
 

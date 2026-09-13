@@ -38,7 +38,7 @@ If a Step 10 strike appears later, check the ledger's assumptions first. A false
 
 ## Step 2.75 — The ledger exists before anything is built
 
-On a **fixes** or **refactor** route that reaches this point without a ledger, because Clarify found the request unambiguous and no grill ran, create one now from `ledger-template.md`: the request restated as observable checklist items, marked **unconfirmed** (no user confirmed them), plus every assumption you made and the seams the tests will cross. It costs a few hundred tokens once, gives Steps 8 to 10 somewhere to write, and is what makes the next follow-up an amend instead of a rebuild. A **feature** always grills, so its ledger already exists; a grill that could not run (non-interactive) creates its own, per `grill.md`. **answer** and **report** routes create none here.
+On a **fixes** or **refactor** route that reaches this point without a ledger, because Clarify found the request unambiguous and no grill ran, create one now from `ledger-template.md`: the request restated as observable checklist items, marked **unconfirmed** (no user confirmed them), plus every assumption you made, the seams the tests will cross, and the `Files` build map. It costs a few hundred tokens once, gives Steps 8 to 10 somewhere to write, and is what makes the next follow-up an amend instead of a rebuild. A **feature** always grills, so its ledger already exists; a grill that could not run (non-interactive) creates its own, per `grill.md`. **answer** and **report** routes create none here.
 
 ## Step 3 — Navigate
 

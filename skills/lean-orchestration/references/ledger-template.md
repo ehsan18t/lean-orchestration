@@ -41,25 +41,28 @@ updated: YYYY-MM-DD
 
 ## Files
 
-- <path> — <what changed, one clause>
+1. [ ] <build step> — <files it touches> — items <n, m>
+2. [ ] ...
 
 ## Log
 
 - YYYY-MM-DD <event>: <one line>
 ```
 
-**Checklist marks:** `[ ]` not checked, `[x]` met, `[-]` not met (say why in the log), `[~]` superseded by an amend (point at the log entry).
+**Checklist marks:** `[ ]` not checked, `[x]` met, `[-]` not met (say why in the log), `[~]` superseded by an amend (point at the log entry). An item added by a review's *later* choice reads `[ ] (deferred YYYY-MM-DD) <item>` and is open work for any later request; it does not hold the status `open`. Any request that picks the item up removes the tag first, with one narrow edit, and from then on it is an ordinary item that is walked and marked like any other. The `Files` build steps use `[ ]` and `[x]` only.
 
 ## Write points
 
 | When | Who writes | What |
 |---|---|---|
 | Grill start (Step 2.5) | the main agent | Create the file with the request and the open load-bearing set; append each decision, assumption and term as it is settled. |
-| Grill exit (Step 2.5) | the main agent | Add the checklist and the seams the tests will cross. This is the grill's deliverable; the grill is not over until the checklist is in the file. |
-| Grill that could not run (non-interactive, or "just build it") | the main agent | Same file, created at grill start as usual: every load-bearing unknown decided and recorded as an assumption marked unverified, and the checklist written from those decisions, marked unconfirmed. |
-| Fixes / refactor route that reaches Step 2.75 with no ledger (Clarify needed no grill) | the main agent, at Step 2.75 | Create the file with the request restated as observable checklist items (marked unconfirmed), the assumptions made, and the seams the tests will cross. Steps 8 to 10 then have a ledger to write to. |
+| Grill exit (Step 2.5) | the main agent | Add the checklist, the seams the tests will cross, and the `Files` build map. This is the grill's deliverable; the grill is not over until the checklist is in the file. |
+| Implement (Step 9) | the main agent | Tick each build step with one narrow edit as it lands. Workers never edit the ledger. |
+| Review choice (Step 10) | the main agent | *Later*: a new checklist item marked deferred. *As-is*: a `Won't fix` entry, copied to `wont-fix.md`. |
+| Grill that could not run (non-interactive, or "just build it") | the main agent | Same file, created at grill start as usual: every load-bearing unknown decided and recorded as an assumption marked unverified, and the checklist written from those decisions, marked unconfirmed, with the `Files` build map. |
+| Fixes / refactor route that reaches Step 2.75 with no ledger (Clarify needed no grill) | the main agent, at Step 2.75 | Create the file with the request restated as observable checklist items (marked unconfirmed), the assumptions made, the seams the tests will cross, and the `Files` build map. Steps 8 to 10 then have a ledger to write to. |
 | Strike rule fires, assumption proves false, route corrected (Step 10) | the main agent | Log line, and the assumption or checklist item it changes. |
-| Deliver (Step 11) | the main agent | Checklist marks, files touched, status, `updated`, log line. |
+| Deliver (Step 11) | the main agent | Checklist marks, the `Files` build map brought current (it is the record of what changed; there is no second file list), status, `updated`, log line. |
 | Amend route | the main agent | The contradicted item, a log line naming the correction, status back to `open` if it was `done`. |
 | Writeup route (W4), when its harvest read this ledger | the main agent | One log line naming the writeup; nothing else changes. |
 
@@ -75,4 +78,4 @@ Three files in the same directory belong to the project, not to a task, and are 
 
 ## Checkpoint
 
-When a session has run long, the checkpoint is the ledger. Bring it current (checklist marks, files, log), then tell the user in one line that the ledger is current and a fresh session will pick it up from the index. Nothing else needs writing. On an answer or report route that has no ledger, the checkpoint is the deliverable file written so far (the report's findings), which is one reason artifacts go to files; say which file it is.
+When a session has run long, the checkpoint is the ledger. Bring it current (checklist marks, build map, log), then tell the user in one line that the ledger is current and a fresh session will pick it up from the index. Nothing else needs writing. On an answer or report route that has no ledger, the checkpoint is the deliverable file written so far (the report's findings), which is one reason artifacts go to files; say which file it is.

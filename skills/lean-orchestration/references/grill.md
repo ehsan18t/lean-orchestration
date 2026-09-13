@@ -13,7 +13,7 @@ Loaded from `ground.md` Step 2.5 when a request is vague, narrative, or underspe
 
 ## Each question
 
-One question per message; several at once is bewildering and gets shallow answers to all of them. The message carries the question, what the repo already says (one line, anchored), two to four options with their consequence, **your recommended answer** with its one-line reason, what the answer closes or opens, and the count of open questions remaining. Then wait: do not proceed on silence, do not answer for the user, do not stack the next question.
+One question per message; several at once is bewildering and gets shallow answers to all of them. The message carries the question, what the repo already says (one line, anchored), two to four options with their consequence, **your recommended answer** with its one-line reason, what the answer closes or opens, and how many load-bearing questions are open now. That count grows whenever an answer opens more, so never frame it as "question k of n", which reads as a cap the grill does not have. Then wait: do not proceed on silence, do not answer for the user, do not stack the next question.
 
 While the answers come in:
 
@@ -22,6 +22,8 @@ While the answers come in:
 - **Probe with a scenario.** Run each load-bearing rule yourself against the edge cases (empty, duplicate, concurrent, partial failure, just past the boundary) and ask only about the one whose answer you cannot predict. A rule that survives three scenarios is a rule; one that does not was two.
 - **Cross-check against code.** When the user says how something works today, confirm it in the code first; if the code disagrees, show the anchor and ask which is right. Half of later "bugs" are this.
 - **Re-plan after each answer.** Delete the questions it closed, add the ones it opened, restate the count.
+
+**Approaches.** When the feature has more than one reasonable shape, one question offers three: **minimal change** (the smallest diff, maximum reuse of what exists), **clean architecture** (clear boundaries and abstractions, at the price of more files and refactoring), and **pragmatic balance** (a new boundary only where it pays). Give each its concrete consequence in this codebase, and your recommendation. Ask it inline, with no dispatch, once the design tree shows the shapes; a feature with one obvious shape gets no such question. It is a different decision from `design.md`'s interface framings, which fire only when a seam is being reshaped.
 
 ## Decisions and assumptions
 
@@ -38,13 +40,14 @@ The repo's own conventions win. Terms go to a root `CONTEXT.md`, or, under a `CO
 The grill exits when the load-bearing set is empty. Not at a question count, not when the user seems tired, not when you feel you understand. Then, in one message:
 
 1. **The acceptance checklist**: numbered, observable statements that define done, each confirmable by looking at code, a test, or a run. Not "handles errors gracefully" but "a malformed payload returns 400 naming the bad field and writes no partial row." Each answered question and each surviving scenario becomes one item. For a feature or a fix, name under it the **seams the tests will cross**; no test is written later at a seam not named here. This checklist, not the prompt, is what Step 10 walks and what a later `amend` reads.
-2. **The assumptions**, listed, so the user can veto any in one word.
-3. **Complete the ledger** with the checklist and the seams; everything else is already there.
-4. Ask for confirmation in one line. Do not enact anything before the checklist is confirmed, except when no one can confirm it (below).
+2. **The build map**: the ledger's `Files` section as numbered build steps, each naming the files it touches and the checklist items it satisfies.
+3. **The assumptions**, listed, so the user can veto any in one word.
+4. **Complete the ledger** with the checklist, the seams and the build map; everything else is already there.
+5. Ask for confirmation in one line. Do not enact anything before the checklist is confirmed, except when no one can confirm it (below).
 
 ## When you cannot grill
 
-Running non-interactively, or told "just build it": do not silently guess. Create the ledger as usual, decide every load-bearing unknown yourself, record each as an assumption marked unverified, write the acceptance checklist from those decisions and mark it **unconfirmed**, and proceed; open the deliverable with the assumptions list. The `amend` route then turns a wrong assumption into a one-line correction instead of a rebuild.
+Running non-interactively, or told "just build it": do not silently guess. Create the ledger as usual, decide every load-bearing unknown yourself, record each as an assumption marked unverified, write the acceptance checklist from those decisions and mark it **unconfirmed**, write the `Files` build map, and proceed; open the deliverable with the assumptions list. The `amend` route then turns a wrong assumption into a one-line correction instead of a rebuild.
 
 ## Anti-patterns, each of which has cost a rebuild
 

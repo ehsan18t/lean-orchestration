@@ -13,7 +13,7 @@ Read the project glossary (the repo's `CONTEXT.md`, or the context's own under a
 
 ## Step 9 — Implement
 
-Implement inline by default. Read-to-edit stays inline and verbatim, in narrow edits.
+Implement inline by default. Read-to-edit stays inline and verbatim, in narrow edits. Tick each step of the ledger's `Files` build map with one narrow edit as it lands (`ledger-template.md`).
 
 ### Test-first, at the seams the grill agreed
 
@@ -29,4 +29,4 @@ Three test shapes to refuse:
 
 ### Delegating implementation
 
-Delegate only parallel-independent slices in separate worktrees; that buys isolation, not context savings. Give each worker the ledger's relevant checklist items and the seam it owns. **After any implementation subagent, read `git diff` inline** and check the worker did not weaken a spec or a test to make its claim pass: a loosened assertion, a skipped test, a widened type, a swallowed error.
+Delegate only parallel-independent slices in separate worktrees; that buys isolation, not context savings. Give each worker the ledger's relevant checklist items and the seam it owns. **After any implementation subagent, read `git diff` inline** and check the worker did not weaken a spec or a test to make its claim pass: a loosened assertion, a skipped test, a widened type, a swallowed error. Then tick the build steps it completed; workers never edit the ledger.
