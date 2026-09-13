@@ -7,7 +7,7 @@ description: Use when starting any non-trivial task (a feature, bug hunt, review
 
 **Goal: the highest-quality output for the least token spend.** Quality comes from adversarial *framing*, which is free text, plus *fresh context*, which is not. Two things cost money: a **dispatch**, which buys a worker its own context and its own read, and a byte admitted to **your own** context, which is then re-billed on every turn that follows. The second is the one this page used to leave unpriced. Maximum framing; fewest fresh contexts; fewest bytes resident in this one.
 
-The role agents (`navigator`, `finder`, `finder-lite`, `skeptic`, `skeptic-max`) carry their own return contracts and evidence bars. Never restate those in a dispatch prompt; state only the task, the slice, the grounding, and the burden direction.
+The role agents (`navigator`, `finder`, `finder-session`, `skeptic`, `skeptic-session`, `skeptic-max`) carry their own return contracts and evidence bars. Never restate those in a dispatch prompt; state only the task, the slice, the grounding, and the burden direction.
 
 ## Scope: one request, not one conversation
 
@@ -19,7 +19,7 @@ This matters because the two halves of this file decay at different rates. The s
 
 **First, the ledger check.** If the request corrects or extends work that has a ledger (see the index the hook injected, or the ledgers this conversation wrote), it is an **amend** and routes to `references/amend.md`, however small the change. The small-work exclusions below do not apply to it: a ledger that no longer matches the code is worse than none, because the next session reads it and builds on it. A one-word copy change to ledgered work is still an amend; recording it costs two narrow edits. Only a correction to work that never had a ledger falls through to the rules below. A request for a ticket or PR text about ledgered work is not a correction: it is a **writeup**, which reads the ledger and changes only its log.
 
-The frontmatter already excludes small work. A **tight debug loop** means a red gate or a repro is already in hand and the fix is local; a bug without one is not small, it is a `fixes` request. The one small case that routes *in*: a single-file change that can alter a user-visible number or wedge or lose data. That gets gates, then one skeptic, and skips the rest of this file. If in doubt on a small task with no ledger behind it, stay inline.
+The frontmatter already excludes small work. A **tight debug loop** means a red gate or a repro is already in hand and the fix is local; a bug without one is not small, it is a `fixes` request. The one small case that routes *in*: a single-file change that can alter a user-visible number or wedge or lose data. That gets gates, then one skeptic (role by the tier table below), and skips the rest of this file. If in doubt on a small task with no ledger behind it, stay inline.
 
 ## Cost model
 
@@ -31,15 +31,25 @@ The frontmatter already excludes small work. A **tight debug loop** means a red 
 2. One adversarial skeptic              buys INDEPENDENCE, not verification.
 3. Small panel (2-3 skeptics, different  expensive. ONLY for high blast-radius or auto-applied
    burden directions or slices)          changes. Diversity here is framing, not roles.
-4. Proof-burden pass (skeptic-max)      critical findings only. Presumed at the burden direction
+4. Proof-burden pass (skeptic-max)      high-stakes findings only (tier table). Presumed at the burden direction
                                         you state; flips only on positive proof.
 ```
 
 Never pay an LLM to find what a gate finds for free, or to repeat a check you already made. Rungs 2 and up buy one thing the main loop cannot: a reader who did not author the claim. Dispatching to "double-check" or "be sure" is not that, and produces over-verification instead of correctness.
 
-**2. Effort: inherit as the baseline; go lower, never higher.** The session's effort level is the user's cost intent for this task. A role may pin *below* it for genuinely light work (`finder-lite`). No role may pin above it, with one deliberate exception: `skeptic-max` pins max, because the proof-burden pass is the one place where being wrong is expensive enough to justify exceeding the baseline. The same rule governs any variant added later.
+**2. Effort and model tiers.** The session's effort level is the user's cost intent for this task. No role pins effort above it, with one deliberate exception: `skeptic-max` pins max, because the proof-burden pass is the one place where being wrong is expensive enough to justify exceeding the baseline. The same rule governs any variant added later.
 
-A `-lite` pin is a floor, not a delta, so when the session already sits at or below it the variants are identical and the plain role is the simpler choice. At a low session effort, skip a marginal skeptic rather than dispatch a weak one: a low-effort skeptic rubber-stamps, which is worse than none because it launders an unverified finding into a verified one.
+The model comes in two tiers. The **default tier** is Opus 4.8: `navigator`, `finder` and `skeptic` pin `model: claude-opus-4-8`. It is a fully capable model that does every dispatch in this skill well at lower token use; never treat it as a lesser reader or route around it on capability grounds. The **session tier** (`finder-session`, `skeptic-session`, `skeptic-max`) pins `model: inherit` and runs only where a second, different model reading the same work pays for itself, because a miss there is expensive. That is model independence; the ladder's panel diversity stays framing, and each panel member still takes its role from this table. Never pass a per-call `model` on these dispatches: it overrides every pin. When the session model is Opus 4.8 itself, both tiers run the same model and a session-tier row keeps only its framing. This table is the only place a tier is chosen; phase files name the dispatch and point here.
+
+| Dispatch | Role |
+|---|---|
+| A find slice (the design-critique seam pass included), the Step 10 review and the amend review, except on a refactor | `finder` |
+| The second, checklist-first reader on a change touching persisted state, money, security, or a user-visible number | `finder-session` |
+| A contested finding not triaged critical, a claimed fix, a refactor's behavior-preservation pass (a refactor's Step 10 review) | `skeptic`; `skeptic-session` when the burden is default-suspect (data loss, security, a wedge) |
+| The Step 0 small case (a single-file change that can alter a user-visible number, wedge or lose data) | `skeptic-session` |
+| A finding already triaged critical (no other skeptic first), or a default-suspect finding that survived `skeptic-session` | `skeptic-max`, once per finding, before any fix |
+
+At a low session effort, skip a marginal skeptic rather than dispatch a weak one: a low-effort skeptic rubber-stamps, which is worse than none because it launders an unverified finding into a verified one.
 
 **3. Dispatch discipline.** A subagent pays a fixed context tax before it reads its prompt, and only the agent definition can slim it. Use the lean roles, all of which strip MCP; reserve `general-purpose` for workers that genuinely need broad tools. Prefer repeated dispatches of the *same* role, which hits a warm cache. Custom agents inherit project CLAUDE.md (never re-paste it; built-in `Explore` and `Plan` skip it); skills content does not arrive, so inject the distilled grounding instead.
 
@@ -130,7 +140,7 @@ Everything a route needs lives inside this skill. No external skill is required,
 | Step 8 | design | `design.md` | The work reshapes a module boundary, interface, or seam. |
 | Step 8 | prototype | `prototype.md` | A state model or screen is uncertain enough that arguing costs more than building. |
 | Step 9 | test-first | `implement.md` | Implementing a feature, a refactor, or a fix that Find surfaced, at the seams the grill named (or Step 2.75 named). |
-| Step 10 | review | `verify.md` | A reader who did not write the diff, on every change that ships code except a literal value, a copy string, or the ledger alone: full `finder` on a feature, on any diff that touches a seam, a shared type, more than one module, a user-visible number or persisted state, or on a defect class that needs sustained reasoning; `finder-lite` on a small single-module fix or amend; a second, checklist-first finder when the change touches persisted state, money, security, or a user-visible number; the preservation skeptic on a refactor. |
+| Step 10 | review | `verify.md` | A reader who did not write the diff, on every change that ships code except a literal value, a copy string, or the ledger alone: one finder reading defects, the checklist and standards; a second, checklist-first reader when the change touches persisted state, money, security, or a user-visible number; standards findings returned to the user as a choice; the preservation skeptic on a refactor. Roles by the tier table (cost model item 2). |
 
 Other installed skills stay available through the Skill tool, but no route depends on one. If the user names one, use it; never substitute it for a step here, and never reimplement a step from memory of one.
 

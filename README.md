@@ -4,7 +4,7 @@ Route every non-trivial Claude Code task for the highest-quality output per toke
 
 Quality comes from adversarial *framing*, which is free text, and from *fresh context*, which is not. Two things cost money: a dispatch, which buys a worker its own context and its own read, and a byte admitted to the main context, which is then re-billed on every turn that follows. The second is the one most cost advice leaves unpriced. This plugin encodes one rule: maximum framing, fewest fresh contexts, fewest bytes resident in the main one.
 
-It is model-agnostic. Nothing in it names a model; roles inherit the session's effort level and only pin below it, with one deliberate exception for the proof-burden pass.
+Most of its work runs on Opus 4.8, a fully capable model that uses fewer tokens. Your session's model is used only where a miss is expensive, and no role raises effort above your session's except the proof-burden pass.
 
 ## What it installs
 
@@ -13,12 +13,12 @@ It is model-agnostic. Nothing in it names a model; roles inherit the session's e
 | `lean-orchestration` skill | The routing procedure: anti-trigger, escalation ladder, cost model, seven routes, and the phase files each route loads. |
 | Internal procedures | The grill, the diagnosis loop, research, design, prototype, test-first, and review, all inside the skill. No other skill is required. |
 | Ledger | One file per task, written by the grill and kept current through delivery, so a follow-up reads it instead of re-deriving it. |
-| `navigator` agent | Read-only. Answers one precise question about code you will not edit, returns anchors plus only load-bearing lines. |
-| `finder` / `finder-lite` agent | Read-only. Reviews one slice through named lenses (code-defect, spec-conformance, design-critique, standards). |
-| `skeptic` / `skeptic-max` agent | Adversarial. Tries to refute a finding it did not author, at the burden direction you state. |
+| `navigator` agent | Read-only. Answers one precise question about code you will not edit, returns anchors plus only load-bearing lines. Runs on Opus 4.8. |
+| `finder` / `finder-session` agent | Read-only. Reviews one slice through named lenses (code-defect, spec-conformance, design-critique, standards). `finder` runs on Opus 4.8; `finder-session` is the same reviewer on your session's model, used as the second reader on high-stakes changes. |
+| `skeptic` / `skeptic-session` / `skeptic-max` agent | Adversarial. Tries to refute a finding it did not author, at the burden direction you state: `skeptic` on Opus 4.8 by default, `skeptic-session` on your session's model when a finding could lose data, breach security or wedge, and `skeptic-max` at maximum effort for findings already judged critical or high-stakes findings that survived their skeptic. |
 | `/lean` command | Enter lean mode explicitly for the current task. |
 | Hooks | Inject the skill at session start, re-inject the ledger index on resume, re-arm Step 0 with one short line on every prompt, and remove permission prompts for the skill's own files and the ledger directory. |
-| Output rules | Six rules for every message you read: answer first, the important with its reasoning, the rest compressed, tables and lists over prose, real names, stop when the content stops. Injected with the skill and re-armed on every prompt. |
+| Output rules | Nine rules for every message you read: the answer on line one; no paragraphs; short named sections once a message covers more than one thing; the most important first, both between sections and inside each; one thing per line; compress everything that matters and omit only what carries nothing; a table when things share a shape, otherwise a list; real names; stop when the content stops. Injected with the skill and re-armed on every prompt. |
 | `scripts/route-rate.mjs`, `scripts/output-length.mjs` | Measure, from your own transcripts, how often the skill fires and how long its messages are. |
 
 ## Install
@@ -46,7 +46,7 @@ Every request starts at Step 0, the anti-trigger, which keeps small work inline.
 
 The writeup route exists because a model asked for a ticket writes from memory of the conversation, at the altitude of "updated the typography" instead of "Roboto to Inter", with the blast radius missing and the reason a platitude, and writes every type the same way whoever asked for it. So each type is defined by its reader and carries its own closed set of sections, in its own order, with the form of each section fixed rather than chosen while writing: an epic is the overview, the module and the affected areas for a stakeholder, and carries no business rules and no acceptance criteria; a story is the problem, how it works today, the rules as policy, and then one of two bars chosen by a stated test, an expected outcome when every ticket under it is testable on its own and acceptance criteria when the split leaves no ticket verifiable alone; a task is what to do, the rules that bind it, the cautions, the scope and effects, and labelled acceptance criteria, written for a developer who is never told what an internal term means; a bug is the problem, the steps to reproduce, the actual against the expected, the effects, the scope and its criteria; a PR carries only what its diff does not show and its ticket does not state. The bar is completeness: someone who was not in the room knows what is being done, why, everything it touches, what is deliberately left out and how it will be judged, without asking a question. There is no length limit, because length is never a reason to drop a fact. What is cut instead is filler, which has an exact definition: a section restating another section, a rule that is already an acceptance criterion and carries no reason the criterion leaves out, a paragraph where a bullet carries the same fact, a heading over nothing, a fact stated twice. The other half of the bar is scannability, because a ticket is read and not parsed: a section label says what is under it without the reader opening the bullets, and a bullet carries one fact. Rules that hold for every type live in `references/writeup.md`, and each type's own reader, sections, form and rules live in one file per type under `references/writeup/`, so asking for a task loads the core and the task file and none of the other four. Three checks gate the emit, and then one subtraction pass removes every restatement; removing a fact in that pass is a defect, not a saving.
 
-The amend route is the one most sessions spend most of their time on. Work is never one-shot: the text is wrong, a business rule turned out different, the new feature has a bug. Without a ledger each of those either re-grounds the whole task or drops to an unrecorded inline edit, and the context of the task rots. With one, each correction is a one-line change to a written record, the edit itself, and a low-effort read by a fresh context for anything beyond a literal or a copy string.
+The amend route is the one most sessions spend most of their time on. Work is never one-shot: the text is wrong, a business rule turned out different, the new feature has a bug. Without a ledger each of those either re-grounds the whole task or drops to an unrecorded inline edit, and the context of the task rots. With one, each correction is a one-line change to a written record, the edit itself, and a read by a fresh context for anything beyond a literal or a copy string.
 
 ## Ask first, build second
 
@@ -56,7 +56,7 @@ Running non-interactively, the grill records every load-bearing unknown as an ex
 
 ## The ledger
 
-A ledger is a small Markdown file per task: request, acceptance checklist, decisions, assumptions, won't-fix entries, files touched, and a log. The grill creates it before its first question and appends to it as each answer lands; verification and delivery update it; a follow-up amends it. Three project-wide files live beside the ledgers and are never indexed: `wont-fix.md` for settled triage, `decisions.md` for the hard-to-reverse decisions a later task must not quietly undo, and `glossary.md` for settled terms. When the repo already keeps these itself (a `CONTEXT.md` glossary, a `docs/adr/` directory), the repo's convention wins and the grill writes there instead.
+A ledger is a small Markdown file per task: request, acceptance checklist, decisions, assumptions, won't-fix entries, a build map of the steps and the files each touches, and a log. The grill creates it before its first question and appends to it as each answer lands; verification and delivery update it; a follow-up amends it. Three project-wide files live beside the ledgers and are never indexed: `wont-fix.md` for settled triage, `decisions.md` for the hard-to-reverse decisions a later task must not quietly undo, and `glossary.md` for settled terms. When the repo already keeps these itself (a `CONTEXT.md` glossary, a `docs/adr/` directory), the repo's convention wins and the grill writes there instead.
 
 At session start the hook injects an index of ledgers: every unfinished one first, then the most recently finished, ten lines in total, each with its title, route, date and path. That costs about sixty tokens per line, and a follow-up then reads only the one ledger it needs. When a session has run long, the ledger is the checkpoint: the skill brings it current and tells you a fresh session will pick the task up from the index.
 
@@ -78,12 +78,12 @@ Rungs are entry depths, not a sequence. Enter where the stakes land.
 1. Gates (tests / typecheck / lint)  deterministic, near free. ALWAYS first
 2. One adversarial skeptic           buys INDEPENDENCE, not verification
 3. Small panel (2-3 skeptics)        high blast-radius or auto-applied changes only
-4. Proof-burden pass (skeptic-max)   critical findings only
+4. Proof-burden pass (skeptic-max)   high-stakes findings only
 ```
 
 Never pay an LLM to find what a gate finds for free, or to repeat a check you already made. Rungs 2 and up buy exactly one thing the main loop cannot: a reader who did not author the claim. Dispatching to "double-check" is not that, and produces over-verification instead of correctness.
 
-The implementation review is where quality is guaranteed by process rather than by hope: every change that ships is read by someone who did not write it. It is one finder over the diff, reading it through three lenses at once (defects, conformance to the ledger's checklist, and the repo's own standards). What varies with the stakes is the tier, never whether it runs: the full finder on a feature or on any diff that touches a seam, a shared type, more than one module, a user-visible number, or persisted state; the low-effort finder on a small single-module fix or amend, where reading it carefully is the whole job. A change that touches persisted state, money, security, or a user-visible number gets a second reader that holds the checklist first and the diff second, so the reading of intent is not anchored by the code. A refactor gets the behavior-preservation skeptic instead. Under the review sit the gates, which always run first, and the checklist walk against what you actually asked for; above it, a finding that touches data, security, or a wedge goes to the proof-burden skeptic before the fix is applied.
+The implementation review is where quality is guaranteed by process rather than by hope: every change that ships is read by someone who did not write it. It is one finder over the diff, reading it through three lenses at once (defects, conformance to the ledger's checklist, and the repo's own standards). It runs on `finder`. Standards findings come back to you as a choice: fix now, later (a deferred checklist item), or as-is (recorded so it is not raised again). A change that touches persisted state, money, security, or a user-visible number gets a second reader, on your session's model, that holds the checklist first and the diff second, so the reading of intent is not anchored by the code. A refactor gets the behavior-preservation skeptic instead. Under the review sit the gates, which always run first, and the checklist walk against what you actually asked for; above it, a finding that touches data, security, or a wedge is settled by the proof-burden skeptic before the fix is applied, after its own skeptic unless it was already judged critical.
 
 ## The hooks
 
@@ -110,9 +110,21 @@ Scans your own transcripts and reports, per session, the number of real prompts,
 
 Answer no to the autostart question when enabling the plugin, or set `autostart` to false in the saved config, and load the skill yourself with `/lean-orchestration:lean`. Both hooks respect the same switch. Do not edit `hooks/hooks.json` to disable them: plugin files are replaced on update.
 
-## Effort
+## Effort and models
 
-The session's effort level is the user's cost intent. A role may pin below it (`finder-lite`) for genuinely light work. No role may pin above it, with one exception: `skeptic-max`, because the proof-burden pass is the one place where being wrong is expensive enough to justify the overspend.
+The session's effort level is the user's cost intent, and no role pins effort above it, with one exception: `skeptic-max`, because the proof-burden pass is the one place where being wrong is expensive enough to justify the overspend.
+
+Models come in two tiers. `navigator`, `finder` and `skeptic` pin `claude-opus-4-8`: Opus 4.8 does every task this plugin dispatches very well, with fewer tokens. The `-session` roles and `skeptic-max` pin `model: inherit`, so they run on your session's model, and a newer session model is picked up with no plugin change. `CLAUDE_CODE_SUBAGENT_MODEL` does not move the pinned roles; built-in agents such as `general-purpose`, `Explore` and `Plan` still follow it. Setting `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` as well overrides the pins.
+
+Your session's model runs only where a second, different model reading the same work pays for itself:
+
+| Dispatch | Model |
+| --- | --- |
+| Every review slice, and the review of every change except a refactor, whose review is the behavior check below | Opus 4.8 (`finder`) |
+| The second, checklist-first reader on a change touching persisted state, money, security or a user-visible number | Your session's model (`finder-session`) |
+| A contested finding, a claimed fix, a refactor's behavior check | Opus 4.8 (`skeptic`), or your session's model (`skeptic-session`) when a miss could lose data, breach security or wedge |
+| A single-file change that can alter a user-visible number, wedge or lose data | Your session's model (`skeptic-session`) |
+| A finding already judged critical, or one that survived its skeptic and could lose data, breach security or wedge | Your session's model at maximum effort (`skeptic-max`) |
 
 At a low session effort, skip a marginal skeptic rather than dispatch a weak one. A low-effort skeptic rubber-stamps, which is worse than no skeptic, because it launders an unverified finding into a verified one.
 
