@@ -18,7 +18,7 @@ try {
     hookSpecificOutput: {
       hookEventName: "UserPromptSubmit",
       additionalContext:
-        `${reminderLead()} on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. ${OUTPUT_LABEL} answer on line one, then short sections of bullets and no paragraphs, sections and bullets both ordered most important first, nothing important dropped.`,
+        `${reminderLead()} on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. ${OUTPUT_LABEL} answer on line one, no paragraphs, sections only for more than one subject, most important first, results not the work, every risk and unchecked claim kept, nothing else the reader does not need or already has.`,
     },
   });
 } catch {
