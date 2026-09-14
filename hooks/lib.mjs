@@ -169,8 +169,13 @@ export function pluginVersion() {
   }
 }
 
+// "lean-orchestration <version>", or the bare name when the version cannot be read.
+export function pluginLabel(version = pluginVersion()) {
+  return `lean-orchestration${version ? ` ${version}` : ""}`;
+}
+
 export function reminderLead(version = pluginVersion()) {
-  return `lean-orchestration${version ? ` ${version}` : ""}: run Step 0`;
+  return `${pluginLabel(version)}: run Step 0`;
 }
 
 // The reminder a transcript line carries when the per-prompt hook injected it, else null.

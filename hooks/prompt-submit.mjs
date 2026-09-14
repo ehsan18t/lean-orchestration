@@ -10,15 +10,18 @@
 // Respects the same setting as the session-start hook: with autostart off there is
 // no body to point at, so this emits nothing.
 
-import { OUTPUT_LABEL, autostartEnabled, emit, reminderLead } from "./lib.mjs";
+import { OUTPUT_LABEL, autostartEnabled, emit, pluginLabel, pluginVersion, reminderLead } from "./lib.mjs";
 
 try {
   if (!autostartEnabled()) process.exit(0);
+  const version = pluginVersion();
   emit({
+    // Shown to the user in the chat; additionalContext below reaches only the model.
+    systemMessage: pluginLabel(version),
     hookSpecificOutput: {
       hookEventName: "UserPromptSubmit",
       additionalContext:
-        `${reminderLead()} on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. ${OUTPUT_LABEL} answer on line one, no paragraphs, sections only for more than one subject, most important first, results not the work, every risk and unchecked claim kept, nothing else the reader does not need or already has.`,
+        `${reminderLead(version)} on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. ${OUTPUT_LABEL} answer on line one, no paragraphs, sections only for more than one subject, most important first, results not the work, every risk and unchecked claim kept, nothing else the reader does not need or already has.`,
     },
   });
 } catch {

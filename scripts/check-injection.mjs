@@ -227,18 +227,19 @@ try {
   }
   check("scripts/sync-agents.test.mjs passes", testsPass, testTail);
 
-  // 7. The per-prompt reminder names the plugin version, and the transcript scripts recognize
-  //    it and its unversioned form, but never a quote of it.
+  // 7. The per-prompt hook shows the user the plugin version, its reminder names the version,
+  //    and the transcript scripts recognize it and its unversioned form, but never a quote of it.
   const version = pluginVersion();
-  const reminder =
-    JSON.parse(
-      execFileSync(process.execPath, [join(ROOT, "hooks", "prompt-submit.mjs")], {
-        input: "{}",
-        encoding: "utf8",
-        env: { ...process.env, LEAN_ORCHESTRATION_AUTOSTART: "on" },
-      }) || "{}",
-    ).hookSpecificOutput?.additionalContext ?? "";
+  const promptOutput = JSON.parse(
+    execFileSync(process.execPath, [join(ROOT, "hooks", "prompt-submit.mjs")], {
+      input: "{}",
+      encoding: "utf8",
+      env: { ...process.env, LEAN_ORCHESTRATION_AUTOSTART: "on" },
+    }) || "{}",
+  );
+  const reminder = promptOutput.hookSpecificOutput?.additionalContext ?? "";
   check("the plugin version is readable", Boolean(version), "pluginVersion() found no version in .claude-plugin/plugin.json");
+  check("the user sees the plugin name and version", promptOutput.systemMessage === `lean-orchestration ${version}`, `systemMessage is ${JSON.stringify(promptOutput.systemMessage)}`);
   check("the reminder opens with the plugin name and version", reminder.startsWith(`lean-orchestration ${version}: run Step 0`), `the reminder opens: ${reminder.slice(0, 60)}`);
   const attached = (text, hookEvent = "UserPromptSubmit") => ({ type: "attachment", attachment: { type: "hook_additional_context", hookEvent, content: [text] } });
   const fallback = `${reminderLead(null)}${reminder.slice(reminderLead(version).length)}`;
