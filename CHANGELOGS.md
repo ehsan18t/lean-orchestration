@@ -37,6 +37,12 @@ WRITING AN ENTRY
 - A released entry is never rewritten. A mistake in one is corrected in the next release's entry.
 -->
 
+## [0.8.1] - 2026-09-14
+
+### Fixed
+
+- **You now see the plugin name and version in the chat on every prompt**, as "lean-orchestration 0.8.1". In 0.8.0 the version reached only the model's per-prompt reminder, so the chat never showed which release is running.
+
 ## [0.8.0] - 2026-09-14
 
 ### Added
