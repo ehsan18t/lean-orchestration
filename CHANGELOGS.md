@@ -37,6 +37,33 @@ WRITING AN ENTRY
 - A released entry is never rewritten. A mistake in one is corrected in the next release's entry.
 -->
 
+## [0.8.0] - 2026-09-14
+
+### Added
+
+- **Two model tiers for the role agents.** `navigator`, `finder` and `skeptic` run on Opus 4.8, which does this work well with fewer tokens. The new `finder-session` and `skeptic-session`, and `skeptic-max`, run on your session's model, so a newer session model is picked up with no plugin change.
+- **The session model is used only where a second, different model reading the same work pays for itself.** That is the second, checklist-first reader on a change touching persisted state, money, security or a user-visible number, a contested finding that could lose data, breach security or wedge, the single-file risky change, and the proof-burden pass. The rule lives in one table in the skill.
+- **The per-prompt reminder names the plugin version**, as "lean-orchestration 0.8.0: run Step 0", so the chat shows which release is running.
+- **A build map in the ledger.** Written when the grill finishes, it lists numbered build steps with the files each touches and the checklist items each satisfies, ticked as each lands, so a later session can resume a build halfway.
+- **An approaches question in the grill.** When a feature has more than one reasonable shape, you choose between minimal change, clean architecture and pragmatic balance, each with its consequence and a recommendation.
+- **Standards findings from a review come back to you as a choice**: fix now, later as a deferred checklist item, or as-is as a Won't fix entry. A deferred item stays open work without holding the ledger open.
+- **Three more smells in the standards lens**: reinvented helper, needless complexity and dead code.
+
+### Changed
+
+- **The output rules are now a full communication prompt.** The answer comes first, results replace narration of the work, every risk and unchecked claim is kept, and nothing is repeated. It adds banned stock phrases, no flattery or analogies, reference codes such as `F1` and `D1` for three or more findings or decisions, scope limits, the aliases `scr`, `eli`, `foc` and `ref`, and do and do-not examples.
+- **`CLAUDE_CODE_SUBAGENT_MODEL` no longer changes the model of this plugin's agents**, because each now pins its own. Built-in agents still follow it, and setting `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` as well overrides the pins.
+- **A contested finding that could lose data, breach security or wedge gets its own skeptic first**, then the proof-burden skeptic before the fix if it survives. A finding already judged critical still goes straight to the proof-burden skeptic.
+- **The grill reports how many questions are open now**, a number that can grow, instead of "question k of n", which read as a cap.
+
+### Fixed
+
+- **`scripts/output-length.mjs` counted most sessions as having no output rules**, because it matched one phrase from a reminder that had been reworded twice, and counted sessions that merely quoted that phrase as having them. It and `scripts/route-rate.mjs` now count only the hook's own injection.
+
+### Removed
+
+- **The `finder-lite` agent.** Small reviews now use `finder` on Opus 4.8.
+
 ## [0.7.0] - 2026-09-10
 
 ### Added
