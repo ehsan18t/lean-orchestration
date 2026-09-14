@@ -13,9 +13,9 @@
 //   startup / clear / compact   the framing, the skill's base directory, the ledger
 //                               directory and index, then the full SKILL.md body.
 //                               Compaction can summarize the body away; this re-arms it.
-//   resume                      the ledger directory and index only, plus a one-line
-//                               "in force" note. A resumed transcript already carries
-//                               the body; re-injecting it would double its rent.
+//   resume                      the ledger directory and index, a one-line "in force"
+//                               note, and the output rules. A resumed transcript already
+//                               carries the body; re-injecting it would double its rent.
 //
 // additionalContext is used rather than initialUserMessage: the body needs to be
 // present, not acted on, so it must not consume a user turn.
@@ -56,7 +56,7 @@ try {
   // works when the skill is installed on its own, outside the plugin.
   const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "skills", "lean-orchestration");
   const SKILL_PATH = join(SKILL_DIR, "SKILL.md");
-  // The output rules are tiny and apply to every message, so they ride along on every source, resume included.
+  // The output rules apply to every message, so they ride along on every source, resume included, and may take more than one slot.
   let output = "";
   try {
     output = readFileSync(join(SKILL_DIR, "OUTPUT.md"), "utf8").trim();

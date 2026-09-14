@@ -109,11 +109,34 @@ try {
   }
   check("a malformed part number emits nothing", runSlot("abc", "startup") === "" && runSlot("0", "startup") === "", "a bad argument still injected");
 
-  // 3. The resume path, which shares buildPart and is otherwise untested.
-  const resume = runSlot(1, "resume");
-  check("the resume injection fits one slot", resume !== "" && Buffer.byteLength(resume) <= PART_LIMIT, `${Buffer.byteLength(resume)} bytes`);
-  check("the resume injection is closed", resume.endsWith("</EXTREMELY_IMPORTANT>"), "resume slot 1 does not close the block");
-  check("resume uses one slot only", runSlot(2, "resume") === "", "resume spilled into slot 2");
+  // 3. The resume path. It carries the ledger index and the full output rules, which can
+  //    outgrow one slot, and every slot runs on resume too, so it is held to the same rules
+  //    as startup: slots in order with no gap, each under the limit, opened and closed once,
+  //    and the output rules arriving whole.
+  const resumed = wanted.map((n) => [n, runSlot(n, "resume")]).filter(([, text]) => text !== "");
+  check("the resume injection emits anything at all", resumed.length > 0, "every resume slot emitted nothing");
+  if (resumed.length > 0) {
+    check("every resume slot is under the limit", resumed.every(([, t]) => Buffer.byteLength(t) <= PART_LIMIT), `bytes: ${resumed.map(([, t]) => Buffer.byteLength(t))}`);
+    check("the resume slots are the first ones, with no gap", resumed.every(([n], i) => n === i + 1), `emitted slots ${resumed.map(([n]) => n).join(", ")}`);
+    check(
+      "the resume injection opens once and closes once",
+      resumed.filter(([, t]) => t.includes("<EXTREMELY_IMPORTANT>")).length === 1 &&
+        resumed.filter(([, t]) => t.includes("</EXTREMELY_IMPORTANT>")).length === 1 &&
+        resumed[0][1].startsWith("<EXTREMELY_IMPORTANT>") &&
+        resumed[resumed.length - 1][1].endsWith("</EXTREMELY_IMPORTANT>"),
+      "the opening or closing tag is missing, duplicated, or not on the first and last resume slot",
+    );
+    const rulesTail = readFileSync(join(ROOT, "skills", "lean-orchestration", "OUTPUT.md"), "utf8")
+      .split("\n")
+      .filter((line) => line.trim() && !/^\s*(```|~~~)/.test(line))
+      .pop();
+    check(
+      "the resume injection carries the output rules to their last line",
+      resumed.some(([, t]) => t.includes(rulesTail)),
+      `the last line of OUTPUT.md is missing from the resume slots: ${rulesTail.slice(0, 60)}`,
+    );
+    check("the resume injection leaves slots to spare", resumed.length < SLOTS, `${resumed.length} of ${SLOTS} slots are in use on resume`);
+  }
 
   // 4. A payload larger than the slots can hold must not lose content in silence. Grown
   //    until it genuinely overruns, so the checks below do not depend on SKILL.md's size.
