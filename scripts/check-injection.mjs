@@ -20,7 +20,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { OUTPUT_LABEL, PART_LIMIT, SLOTS, buildPart, injectedReminder, pluginVersion, reminderLead, splitIntoParts } from "../hooks/lib.mjs";
+import { PART_LIMIT, SLOTS, buildPart, injectedReminder, pluginVersion, reminderLead, splitIntoParts } from "../hooks/lib.mjs";
 import { staleAgents } from "./sync-agents.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -109,10 +109,9 @@ try {
   }
   check("a malformed part number emits nothing", runSlot("abc", "startup") === "" && runSlot("0", "startup") === "", "a bad argument still injected");
 
-  // 3. The resume path. It carries the ledger index and the full output rules, which can
-  //    outgrow one slot, and every slot runs on resume too, so it is held to the same rules
-  //    as startup: slots in order with no gap, each under the limit, opened and closed once,
-  //    and the output rules arriving whole.
+  // 3. The resume path. It carries the ledger index, and every slot runs on resume too, so it
+  //    is held to the same rules as startup: slots in order with no gap, each under the limit,
+  //    and opened and closed once.
   const resumed = wanted.map((n) => [n, runSlot(n, "resume")]).filter(([, text]) => text !== "");
   check("the resume injection emits anything at all", resumed.length > 0, "every resume slot emitted nothing");
   if (resumed.length > 0) {
@@ -125,15 +124,6 @@ try {
         resumed[0][1].startsWith("<EXTREMELY_IMPORTANT>") &&
         resumed[resumed.length - 1][1].endsWith("</EXTREMELY_IMPORTANT>"),
       "the opening or closing tag is missing, duplicated, or not on the first and last resume slot",
-    );
-    const rulesTail = readFileSync(join(ROOT, "skills", "lean-orchestration", "OUTPUT.md"), "utf8")
-      .split("\n")
-      .filter((line) => line.trim() && !/^\s*(```|~~~)/.test(line))
-      .pop();
-    check(
-      "the resume injection carries the output rules to their last line",
-      resumed.some(([, t]) => t.includes(rulesTail)),
-      `the last line of OUTPUT.md is missing from the resume slots: ${rulesTail.slice(0, 60)}`,
     );
     check("the resume injection leaves slots to spare", resumed.length < SLOTS, `${resumed.length} of ${SLOTS} slots are in use on resume`);
   }
@@ -229,7 +219,7 @@ try {
 
   // 7. The Route line the user sees opens with the plugin name and version, taken from the
   //    per-prompt reminder, which names the version; the hook shows the user no message of its
-  //    own; and the transcript scripts recognize the reminder and its unversioned form, but
+  //    own; and scripts/route-rate.mjs recognizes the reminder and its unversioned form, but
   //    never a quote of it.
   const version = pluginVersion();
   const promptOutput = JSON.parse(
@@ -248,12 +238,12 @@ try {
   const attached = (text, hookEvent = "UserPromptSubmit") => ({ type: "attachment", attachment: { type: "hook_additional_context", hookEvent, content: [text] } });
   const fallback = `${reminderLead(null)}${reminder.slice(reminderLead(version).length)}`;
   check("an unreadable version falls back to the unversioned opening", reminderLead(null) === "lean-orchestration: run Step 0", `reminderLead(null) is ${JSON.stringify(reminderLead(null))}`);
-  // The first reminder that carried the output rules (da7f95b), so older transcripts still count.
+  // The first shipped reminder (da7f95b), so older transcripts still count.
   const firstShipped =
     "lean-orchestration: run Step 0 on this request now. If it corrects or extends work that has a ledger, however small, it is an amend: read that ledger and references/amend.md before editing. Emit a Route line or say in one line that the prior route holds. Output: answer first, the important with its reasoning, the rest compressed, nothing padded.";
   check(
-    "the transcript scripts recognize the reminder, versioned, unversioned and first shipped, with its output label",
-    [reminder, fallback, firstShipped].every((t) => (injectedReminder(attached(t)) ?? "").includes(OUTPUT_LABEL)),
+    "route-rate.mjs recognizes the reminder, versioned, unversioned and first shipped",
+    [reminder, fallback, firstShipped].every((t) => injectedReminder(attached(t)) === t),
     "injectedReminder() missed the current reminder, its fallback, or the first shipped wording",
   );
   check(

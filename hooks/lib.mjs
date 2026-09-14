@@ -152,10 +152,9 @@ export function emit(payload) {
 }
 
 // The per-prompt reminder opens "lean-orchestration <version>: run Step 0" (earlier releases
-// had no version) and carries its output rules after OUTPUT_LABEL. prompt-submit.mjs builds
-// the opening with reminderLead(); scripts/output-length.mjs and scripts/route-rate.mjs find
-// the reminder with injectedReminder(). The wording lives here once.
-export const OUTPUT_LABEL = "Output:";
+// had no version). prompt-submit.mjs builds the opening with reminderLead();
+// scripts/route-rate.mjs finds the reminder with injectedReminder(). The wording lives here
+// once.
 const REMINDER_OPENING = /^lean-orchestration(?: [0-9][^\s:]*)?: run Step 0/;
 
 // The version in .claude-plugin/plugin.json, or null when it cannot be read.

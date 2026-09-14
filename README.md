@@ -18,8 +18,7 @@ Most of its work runs on Opus 4.8, a fully capable model that uses fewer tokens.
 | `skeptic` / `skeptic-session` / `skeptic-max` agent | Adversarial. Tries to refute a finding it did not author, at the burden direction you state: `skeptic` on Opus 4.8 by default, `skeptic-session` on your session's model when a finding could lose data, breach security or wedge, and `skeptic-max` at maximum effort for findings already judged critical or high-stakes findings that survived their skeptic. |
 | `/lean` command | Enter lean mode explicitly for the current task. |
 | Hooks | Inject the skill at session start, re-inject the ledger index on resume, re-arm Step 0 with one short line on every prompt, and remove permission prompts for the skill's own files and the ledger directory. |
-| Output rules | Ten short rules for every message you read: the answer on line one; no paragraphs; sections only when a message covers more than one subject; most important first; what you asked for plus every risk, assumption and unchecked claim, and nothing else; results rather than the work behind them; nothing said twice; tables and lists by shape; real names; stop when the content stops. Injected with the skill and re-armed on every prompt. |
-| `scripts/route-rate.mjs`, `scripts/output-length.mjs` | Measure, from your own transcripts, how often the skill fires and how long its messages are. |
+| `scripts/route-rate.mjs` | Measures, from your own transcripts, how often the skill fires. |
 
 ## Install
 
@@ -29,6 +28,17 @@ Most of its work runs on Opus 4.8, a fully capable model that uses fewer tokens.
 ```
 
 Requires `node` on your PATH for the hooks. A hook failure is silent: a missing Node costs you the autostart and nothing else.
+
+## Output rules: no-smartass-bs
+
+lean-orchestration decides how a task is routed, not how a reply reads. Versions before 0.9.0 also injected a set of output rules; those now live in their own plugin, [no-smartass-bs](https://github.com/ehsan18t/no-smartass-bs), so each can be installed, updated or turned off without the other.
+
+no-smartass-bs makes every reply short, skimmable and easy to act on: the answer on line one, bullets, steps or tables instead of paragraphs, most important first, and every risk, assumption and unverified claim kept. It injects its rules at every session start and a one-line reminder on every prompt, with no settings and no runtime. The two plugins run side by side.
+
+```
+/plugin marketplace add ehsan18t/no-smartass-bs
+/plugin install no-smartass-bs
+```
 
 ## The routes
 
@@ -89,7 +99,7 @@ The implementation review is where quality is guaranteed by process rather than 
 
 The skill's description excludes small work, so left to model judgment it fires inconsistently. Measured over 72 local sessions in August 2026, a session-start hook that injected the skill loaded it in 8 of 9 sessions, against 6 of 63 with no hook. Injecting the body itself, rather than an instruction to load it, removed the one step that could still be skipped.
 
-Three hooks now do the work, one per event. On `startup`, `clear` and `compact`, the session-start hook injects the skill body, the ledger directory, the ledger index and the output rules, so routing is in force before your first message and survives a compaction. The harness truncates any single hook output above roughly 10 KB to a 2 KB preview plus a file on disk, and the limit is per hook (measured: 9 KB arrives whole, 11 KB does not; three 9 KB hooks all arrive). Earlier versions injected the 13 KB body in one piece and only its first 2 KB ever reached the model in full. The hook is therefore registered six times and emits the payload in parts under 8.5 KB, split at section boundaries; a slot with no part emits nothing, which is the room the body has to grow, and a payload that outgrows all six slots is reported on the last slot that runs rather than losing its tail in silence. `node scripts/check-injection.mjs` checks all of that by running the hook slot by slot and measuring the bytes it actually emits; there is no CI here, so it is a command to run before a release. On `resume` it injects only a fresh ledger index and a one-line note, because the transcript already carries the body. On every prompt, a second hook adds one line of about sixty tokens that re-arms Step 0 and names the amend route; the body sits in the prefix from the start, but a standing instruction decays over a long session and a per-prompt line is the direct countermeasure. It loads nothing, so its whole cost is its own length.
+Three hooks now do the work, one per event. On `startup`, `clear` and `compact`, the session-start hook injects the skill body, the ledger directory and the ledger index, so routing is in force before your first message and survives a compaction. The harness truncates any single hook output above roughly 10 KB to a 2 KB preview plus a file on disk, and the limit is per hook (measured: 9 KB arrives whole, 11 KB does not; three 9 KB hooks all arrive). Earlier versions injected the 13 KB body in one piece and only its first 2 KB ever reached the model in full. The hook is therefore registered six times and emits the payload in parts under 8.5 KB, split at section boundaries; a slot with no part emits nothing, which is the room the body has to grow, and a payload that outgrows all six slots is reported on the last slot that runs rather than losing its tail in silence. `node scripts/check-injection.mjs` checks all of that by running the hook slot by slot and measuring the bytes it actually emits; there is no CI here, so it is a command to run before a release. On `resume` it injects only a fresh ledger index and a one-line note, because the transcript already carries the body. On every prompt, a second hook adds one line of about sixty tokens that re-arms Step 0 and names the amend route; the body sits in the prefix from the start, but a standing instruction decays over a long session and a per-prompt line is the direct countermeasure. It loads nothing, so its whole cost is its own length.
 
 A third hook removes permission prompts for exactly two places: reads of the skill's own phase files, and reads or edits inside the ledger directory. Both sit outside your working directory, so without it every phase-file read and every ledger update would ask, and a non-interactive session would refuse them and silently fall back to unrecorded inline work. Measured in a print-mode session before this hook existed, that is exactly what happened: the model routed to amend, was refused the ledger and the amend phase file, and made the edit with no record. With the hook, the same session read both, recorded the false assumption before touching code, fixed it, and logged the correction. Nothing else is auto-allowed.
 
@@ -99,10 +109,7 @@ A third hook removes permission prompts for exactly two places: reads of the ski
 
 ```
 node scripts/route-rate.mjs --since 2026-09-01
-node scripts/output-length.mjs --since 2026-09-01
 ```
-
-The second reports median and 90th-percentile words per message, code and tables excluded, split by whether the output rules were injected. Baseline over 55 sessions before the rules: median 19 words, 90th percentile 228.
 
 Scans your own transcripts and reports, per session, the number of real prompts, the number of Route lines, whether the per-prompt reminder was present, and the old skill-load count, then a routed rate for sessions with and without the reminder. Before the per-prompt hook existed, 41 of 54 sessions with at least two prompts (76 percent, 2026-08-18 onward) carried a Route line. Run it after a week on the new hooks to see the difference.
 

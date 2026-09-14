@@ -13,9 +13,9 @@
 //   startup / clear / compact   the framing, the skill's base directory, the ledger
 //                               directory and index, then the full SKILL.md body.
 //                               Compaction can summarize the body away; this re-arms it.
-//   resume                      the ledger directory and index, a one-line "in force"
-//                               note, and the output rules. A resumed transcript already
-//                               carries the body; re-injecting it would double its rent.
+//   resume                      the ledger directory and index, and a one-line "in force"
+//                               note. A resumed transcript already carries the body;
+//                               re-injecting it would double its rent.
 //
 // additionalContext is used rather than initialUserMessage: the body needs to be
 // present, not acted on, so it must not consume a user turn.
@@ -56,13 +56,6 @@ try {
   // works when the skill is installed on its own, outside the plugin.
   const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "skills", "lean-orchestration");
   const SKILL_PATH = join(SKILL_DIR, "SKILL.md");
-  // The output rules apply to every message, so they ride along on every source, resume included, and may take more than one slot.
-  let output = "";
-  try {
-    output = readFileSync(join(SKILL_DIR, "OUTPUT.md"), "utf8").trim();
-  } catch {
-    output = "";
-  }
 
   const input = readStdinJson();
   const source = String(input.source || "startup").toLowerCase();
@@ -73,9 +66,9 @@ try {
       "lean-orchestration is in force for this session; its body was injected earlier in this",
       "transcript. If you cannot see that body, load the `lean-orchestration` skill with the Skill",
       "tool now. Run its Step 0 on every request. The ledger index below is current; the one in",
-      "the earlier injection is not. The output rules below apply to every message.",
+      "the earlier injection is not.",
     ].join(" ");
-    emitPart(`${note}\n\n${ledgers}\n\n${output}`);
+    emitPart(`${note}\n\n${ledgers}`);
     process.exit(0);
   }
 
@@ -89,8 +82,7 @@ try {
     "loaded, so you do not need to load the lean-orchestration skill yourself. Other skills are",
     "unaffected: invoke them with the Skill tool as normal.",
     "This is in force for the entire session. Run its Step 0 anti-trigger on every request, and",
-    "emit the one-line Route before dispatching any subagent or writing a plan. The output rules",
-    "after the body apply to every message the user reads.",
+    "emit the one-line Route before dispatching any subagent or writing a plan.",
   ].join(" ");
 
   const BASE_DIR_LINE =
@@ -120,7 +112,7 @@ try {
     process.exit(0);
   }
 
-  emitPart(`${FRAMING}\n\n${BASE_DIR_LINE}\n\n${ledgers}\n\n${skill}\n\n${output}`);
+  emitPart(`${FRAMING}\n\n${BASE_DIR_LINE}\n\n${ledgers}\n\n${skill}`);
 } catch {
   process.exit(0);
 }
