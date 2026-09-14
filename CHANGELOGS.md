@@ -37,6 +37,12 @@ WRITING AN ENTRY
 - A released entry is never rewritten. A mistake in one is corrected in the next release's entry.
 -->
 
+## [0.8.2] - 2026-09-14
+
+### Fixed
+
+- **The plugin name and version now open the Route line**, as "lean-orchestration 0.8.2 | Route: …", and the "prior route holds" line of a follow-up opens the same way. 0.8.1 showed the version as a separate chat message instead, which Claude Code labels "UserPromptSubmit says:"; that message is gone.
+
 ## [0.8.1] - 2026-09-14
 
 ### Fixed
