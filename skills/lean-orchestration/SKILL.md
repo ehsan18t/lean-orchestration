@@ -11,7 +11,7 @@ The role agents (`navigator`, `finder`, `finder-session`, `skeptic`, `skeptic-se
 
 ## Scope: one request, not one conversation
 
-This procedure governs the request in front of you. When a new request arrives later in the same conversation, **you are at Step 0 again**: re-run the anti-trigger, then either emit a fresh Route line or say in one line that the prior route still covers it. Nothing about the *procedure* carries over on its own — a route, a budget, a grounding summary and a strike count each belong to the request that produced them. The **ledger** does carry over: the acceptance checklist, decisions, assumptions and won't-fix entries belong to the task, live in the ledger directory the session-start hook names, and are read by any later request that touches that task (`references/ledger-template.md`). A follow-up reads the ledger; it never re-derives it.
+This procedure governs the request in front of you. When a new request arrives later in the same conversation, **you are at Step 0 again**: re-run the anti-trigger, then either emit a fresh Route line or say in one line, opening with the same plugin name and version, that the prior route still covers it (`lean-orchestration <version> | prior route holds: amend of the output-rules ledger`). Nothing about the *procedure* carries over on its own — a route, a budget, a grounding summary and a strike count each belong to the request that produced them. The **ledger** does carry over: the acceptance checklist, decisions, assumptions and won't-fix entries belong to the task, live in the ledger directory the session-start hook names, and are read by any later request that touches that task (`references/ledger-template.md`). A follow-up reads the ledger; it never re-derives it.
 
 This matters because the two halves of this file decay at different rates. The structure lives in the early steps and fires once. The restrictions read as standing law and persist. Inheriting the restrictions without re-running the routing that justified them is worse than not using this file at all: you get the brakes with no steering.
 
@@ -69,7 +69,7 @@ You cannot read your own prefix size; the harness does not report it, and most o
 
 ## Step 1 — Route
 
-Classify, then emit one visible line carrying the forecast, so a misroute can be vetoed before it costs anything.
+Classify, then emit one visible line carrying the forecast, so a misroute can be vetoed before it costs anything. The line opens with the plugin name and the version the per-prompt reminder names (`<version>` below stands for it, never printed literally), so the user sees which release routed the request.
 
 | Axis | Values |
 |---|---|
@@ -78,7 +78,7 @@ Classify, then emit one visible line carrying the forecast, so a misroute can be
 | Scope | repo / branch-diff / module / file |
 | Stakes | reversible note to auto-applied edit |
 
-`Route: review of branch diff (code + design), deliverable=report | ~4 dispatches`
+`lean-orchestration <version> | Route: review of branch diff (code + design), deliverable=report | ~4 dispatches`
 
 **The forecast counts every subagent you plan to spawn** — navigators, finders, skeptics, `Explore`, `Plan`, `general-purpose`, a grounding worker, background navigators (research), and implementation workers in worktrees. If the run will exceed it, emit a corrected line rather than spending past it quietly. Correct the route the same way when evidence contradicts it.
 

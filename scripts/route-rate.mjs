@@ -31,8 +31,9 @@ const SHOW_ALL = args.includes("--all");
 
 const root = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
 
-// "Route:" within the first few characters of a line: covers `Route:`, **Route:**, - Route:, > Route:
-const ROUTE = /(^|\n)[^\n]{0,6}Route:/;
+// "Route:" within the first few characters of a line: covers `Route:`, **Route:**, - Route:, > Route:,
+// optionally after the "lean-orchestration <version> | " opening the skill asks for.
+const ROUTE = /(^|\n)[^\n]{0,6}(?:lean-orchestration(?: [0-9][^\s|]*)? \| )?Route:/;
 const HOLDS = /prior route (still )?(holds|covers)/i;
 const STRIP_REMINDERS = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
 

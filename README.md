@@ -32,7 +32,7 @@ Requires `node` on your PATH for the hooks. A hook failure is silent: a missing 
 
 ## The routes
 
-Every request starts at Step 0, the anti-trigger, which keeps small work inline. Anything non-trivial gets one visible Route line carrying the forecast of dispatches, so a misroute can be vetoed before it costs anything.
+Every request starts at Step 0, the anti-trigger, which keeps small work inline. Anything non-trivial gets one visible Route line, opening with the plugin name and version and carrying the forecast of dispatches, so a misroute can be vetoed before it costs anything.
 
 | Route | When | Shape |
 | --- | --- | --- |
