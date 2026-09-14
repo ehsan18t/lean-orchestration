@@ -1,41 +1,21 @@
 # Changelog
 
-All notable changes to lean-orchestration, newest version first. Versions before 0.7.0 predate this file.
+Newest first. Versions before 0.7.0 predate this file.
 
 <!--
-MAINTAINING THIS FILE. These rules are not user-facing: keep every one of them inside this comment.
-
-WHEN TO WRITE
-- Only immediately before the release commit. Never while the work is landing: between releases this file does not change, and a commit that adds a feature does not touch it.
-- The release is ONE commit containing the new entry and the matching version in `.claude-plugin/plugin.json`, with the message `release: X.Y.Z`.
-- If asked to release and this file already has an entry for the version being released, the previous attempt was undone: rewrite that entry from the sources below rather than trusting it.
-
-WHERE THE CONTENT COMES FROM
-- `git log --oneline <sha of the previous release: commit>..HEAD` for everything unreleased. Find that sha with `git log --oneline --grep="^release"`, never from memory.
-- Read the commit bodies, not just the subjects: the body carries what actually changed and why.
-- Read the ledgers for those tasks in the ledger directory the session-start hook names. A commit says what moved; the ledger says why it mattered and what was decided, which is what a reader of this file needs.
-- Never write an entry from memory of the session that produced the work.
-
-HOW COMMITS COLLAPSE INTO ENTRIES
-- One entry per user-visible change, never one per commit. Several commits normally become one entry.
-- A fix to a feature that has not shipped yet is PART of that feature: it gets no entry of its own, and the feature's entry describes the result that shipped, not the path taken to it.
-- A fix or a change to behavior that IS already released gets its own entry, under Fixed or Changed.
-- Work no user of the plugin can observe (a pure refactor, a test, a comment, a ledger) gets no entry at all.
-
-THE VERSION NUMBER
-- Take the current number from the previous `release:` commit and from `.claude-plugin/plugin.json`. Check both agree before deciding.
-- Patch (0.7.0 to 0.7.1): only fixes to released behavior.
-- Minor (0.7.0 to 0.8.0): anything added, anything removed from the package, or a decision recorded in a ledger reversed.
-- Major: reserved for a change that breaks an existing install.
-- The version in the top entry and in `.claude-plugin/plugin.json` must match before the commit is made.
-
-WRITING AN ENTRY
-- Headings in this order, and a heading with nothing under it is omitted: Added, Changed, Fixed, Removed.
-- Each bullet opens with a bold clause naming what changed for the reader, then the consequence, then the reason where the reason is not obvious.
-- Say what changed for someone using the plugin, not which file moved. Name a file only where the reader interacts with it directly.
-- No em dashes, and never hard-wrap a line: this half of the file is read by people.
-- A released entry is never rewritten. A mistake in one is corrected in the next release's entry.
+A release is one commit: this entry plus the version in .claude-plugin/plugin.json, message "release: X.Y.Z". Installed copies update only when the version changes.
+Write the entry from git log <previous release>..HEAD, the commit bodies and the task ledgers, never from memory. Find the previous release with git log --grep="^release: [0-9]".
+One sentence per change a plugin user can notice, under Added, Changed, Fixed, Removed in that order, empty headings omitted. A fix to unreleased work folds into its feature. Refactors, tests, the eval harness and docs get no line.
+Version: patch for fixes to released behavior, minor for anything added, removed or a reversed decision, major for a break to existing installs.
+Never rewrite a released entry, correct it in the next one. No em dashes, no hard wraps.
 -->
+
+## 0.9.0 - 2026-09-14
+
+### Removed
+
+- The output rules moved to their own plugin, [no-smartass-bs](https://github.com/ehsan18t/no-smartass-bs), so sessions get them only when that plugin is installed.
+- `scripts/output-length.mjs` is gone, since it only measured the rules this plugin injected.
 
 ## [0.8.2] - 2026-09-14
 
